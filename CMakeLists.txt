@@ -105,6 +105,10 @@ endif()
 
 include(CMakeDependentOption)
 
+find_package(prometheus-cpp CONFIG REQUIRED)
+list(APPEND THIRDPARTY_LIBS prometheus-cpp::core)
+list(APPEND THIRDPARTY_LIBS prometheus-cpp::pull)
+
 if(MSVC)
   option(WITH_GFLAGS "build with GFlags" OFF)
   option(WITH_XPRESS "build with windows built in compression" OFF)
@@ -757,6 +761,8 @@ set(SOURCES
         env/fs_remap.cc
         env/mock_env.cc
         env/unique_id_gen.cc
+        cloud/zonda_file_system.cc
+        cloud/metrics.cc
         file/delete_scheduler.cc
         file/file_prefetch_buffer.cc
         file/file_util.cc
@@ -1523,6 +1529,7 @@ if(WITH_TESTS)
       table/mock_table.cc
       utilities/agg_merge/test_agg_merge.cc
       utilities/cassandra/test_utils.cc
+      cloud/example/cloud_simple.cc
   )
   enable_testing()
   add_custom_target(rocksdb_check COMMAND ${CMAKE_CTEST_COMMAND})
