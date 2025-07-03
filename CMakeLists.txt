@@ -1053,6 +1053,7 @@ else()
     port/port_posix.cc
     env/env_posix.cc
     env/fs_posix.cc
+    env/fs_zonda.cc
     env/io_posix.cc)
 endif()
 
@@ -1523,6 +1524,7 @@ if(WITH_TESTS)
       table/mock_table.cc
       utilities/agg_merge/test_agg_merge.cc
       utilities/cassandra/test_utils.cc
+          env/fs_zonda.cc
   )
   enable_testing()
   add_custom_target(rocksdb_check COMMAND ${CMAKE_CTEST_COMMAND})

@@ -114,6 +114,7 @@ LIB_SOURCES =                                                   \
   env/file_system.cc                                            \
   env/fs_on_demand.cc                                           \
   env/fs_posix.cc                                               \
+  env/fs_zonda.cc                                               \
   env/fs_remap.cc                                               \
   env/file_system_tracer.cc                                     \
   env/io_posix.cc                                               \
