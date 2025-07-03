@@ -363,8 +363,6 @@ class FileSystem : public Customizable {
   // system.
   static std::shared_ptr<FileSystem> Default();
 
-  static std::shared_ptr<FileSystem> ZondaFS(const std::shared_ptr<FileSystem>& base_fs);
-
   // Handles the event when a new DB or a new ColumnFamily starts using the
   // specified data paths.
   //

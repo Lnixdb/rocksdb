@@ -757,6 +757,7 @@ set(SOURCES
         env/fs_remap.cc
         env/mock_env.cc
         env/unique_id_gen.cc
+        cloud/zonda_file_system.cc
         file/delete_scheduler.cc
         file/file_prefetch_buffer.cc
         file/file_util.cc
@@ -1053,7 +1054,6 @@ else()
     port/port_posix.cc
     env/env_posix.cc
     env/fs_posix.cc
-    env/fs_zonda.cc
     env/io_posix.cc)
 endif()
 
@@ -1524,7 +1524,7 @@ if(WITH_TESTS)
       table/mock_table.cc
       utilities/agg_merge/test_agg_merge.cc
       utilities/cassandra/test_utils.cc
-          env/fs_zonda.cc
+          cloud/example/cloud_simple.cc
   )
   enable_testing()
   add_custom_target(rocksdb_check COMMAND ${CMAKE_CTEST_COMMAND})

@@ -114,12 +114,12 @@ LIB_SOURCES =                                                   \
   env/file_system.cc                                            \
   env/fs_on_demand.cc                                           \
   env/fs_posix.cc                                               \
-  env/fs_zonda.cc                                               \
   env/fs_remap.cc                                               \
   env/file_system_tracer.cc                                     \
   env/io_posix.cc                                               \
   env/mock_env.cc                                               \
   env/unique_id_gen.cc                                          \
+  cloud/zonda_file_system.cc                                    \
   file/delete_scheduler.cc                                      \
   file/file_prefetch_buffer.cc                                  \
   file/file_util.cc                                             \
