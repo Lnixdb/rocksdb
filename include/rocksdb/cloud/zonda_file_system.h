@@ -35,31 +35,18 @@
 #include <deque>
 #include <set>
 #include <vector>
-#include <iostream>
-#include "env/io_posix.h"
-#include "monitoring/thread_status_updater.h"
-
-#include "port/port.h"
-#include "rocksdb/options.h"
-#include "rocksdb/slice.h"
-
-#include "util/compression_context_cache.h"
-#include "util/random.h"
-
-
 
 #include <rocksdb/file_system.h>
 
-namespace ROCKSDB_NAMESPACE {
+#include "rocksdb/options.h"
+#include "rocksdb/slice.h"
+#include "cloud/metrics.h"
 
-namespace {
+namespace ROCKSDB_NAMESPACE {
 
 class ZondaFileSystem : public FileSystem {
  public:
-  ZondaFileSystem(
-    const std::shared_ptr<FileSystem>& base_fs){
-    base_fs_ = base_fs;
-  }
+  ZondaFileSystem(const std::shared_ptr<FileSystem>& base_fs);
 
   static const char* kClassName() { return "ZondaFileSystem"; }
   const char* Name() const override { return kClassName(); }
@@ -77,181 +64,119 @@ class ZondaFileSystem : public FileSystem {
   IOStatus NewSequentialFile(const std::string& fname,
                              const FileOptions& options,
                              std::unique_ptr<FSSequentialFile>* result,
-                             IODebugContext* dbg) override {
-    return base_fs_->NewSequentialFile(fname, options, result, dbg);
-  }
+                             IODebugContext* dbg) override;
 
   IOStatus NewRandomAccessFile(const std::string& fname,
                                const FileOptions& options,
                                std::unique_ptr<FSRandomAccessFile>* result,
-                               IODebugContext* dbg) override {
-    return base_fs_->NewRandomAccessFile(fname, options, result, dbg);
-  }
+                               IODebugContext* dbg) override;
 
 
   IOStatus NewWritableFile(const std::string& fname, const FileOptions& options,
                            std::unique_ptr<FSWritableFile>* result,
-                           IODebugContext* dbg) override {
-    return base_fs_->NewWritableFile(fname, options, result, dbg);
-  }
+                           IODebugContext* dbg) override;
 
   IOStatus ReopenWritableFile(const std::string& fname,
                               const FileOptions& options,
                               std::unique_ptr<FSWritableFile>* result,
-                              IODebugContext* dbg) override {
-    return base_fs_->ReopenWritableFile(fname, options, result, dbg);
-  }
+                              IODebugContext* dbg) override ;
 
   IOStatus ReuseWritableFile(const std::string& fname,
                              const std::string& old_fname,
                              const FileOptions& options,
                              std::unique_ptr<FSWritableFile>* result,
-                             IODebugContext* dbg) override {
-    return base_fs_->ReuseWritableFile(fname, old_fname, options, result, dbg);
-  }
+                             IODebugContext* dbg) override ;
 
   IOStatus NewRandomRWFile(const std::string& fname, const FileOptions& options,
                            std::unique_ptr<FSRandomRWFile>* result,
-                           IODebugContext* dbg) override {
-    return base_fs_->NewRandomRWFile(fname, options, result, dbg);
-  }
+                           IODebugContext* dbg) override ;
 
   IOStatus NewMemoryMappedFileBuffer(
       const std::string& fname,
-      std::unique_ptr<MemoryMappedFileBuffer>* result) override {
-    return base_fs_->NewMemoryMappedFileBuffer(fname, result);
-  }
+      std::unique_ptr<MemoryMappedFileBuffer>* result) override;
 
   IOStatus NewDirectory(const std::string& name, const IOOptions& opts,
                         std::unique_ptr<FSDirectory>* result,
-                        IODebugContext* dbg) override {
-    return base_fs_->NewDirectory(name, opts, result, dbg);
-  }
+                        IODebugContext* dbg) override;
 
   IOStatus FileExists(const std::string& fname, const IOOptions& opts,
-                      IODebugContext* dbg) override {
-    return base_fs_->FileExists(fname,  opts, dbg);
-  }
+                      IODebugContext* dbg) override ;
 
   IOStatus GetChildren(const std::string& dir, const IOOptions& opts,
                        std::vector<std::string>* result,
-                       IODebugContext* dbg) override {
-    return  base_fs_->GetChildren(dir, opts, result, dbg);
-  }
+                       IODebugContext* dbg) override;
 
   IOStatus DeleteFile(const std::string& fname, const IOOptions& opts,
-                      IODebugContext* dbg) override {
-   return base_fs_->DeleteFile(fname, opts, dbg);
-  }
+                      IODebugContext* dbg) override;
 
   IOStatus CreateDir(const std::string& name, const IOOptions& opts,
-                     IODebugContext* dbg) override {
-    return base_fs_->CreateDir(name, opts, dbg);
-  }
+                     IODebugContext* dbg) override;
 
   IOStatus CreateDirIfMissing(const std::string& name,
                               const IOOptions& opts,
-                              IODebugContext* dbg) override {
-    return base_fs_->CreateDirIfMissing(name, opts, dbg);
-  }
+                              IODebugContext* dbg) override;
 
   IOStatus DeleteDir(const std::string& name, const IOOptions& opts,
-                     IODebugContext* dbg) override {
-    return base_fs_->DeleteDir(name, opts, dbg);
-  }
+                     IODebugContext* dbg) override;
 
   IOStatus GetFileSize(const std::string& fname, const IOOptions& opts,
-                       uint64_t* size, IODebugContext* dbg) override {
-    return base_fs_->GetFileSize(fname, opts, size, dbg);
-  }
+                       uint64_t* size, IODebugContext* dbg) override;
 
   IOStatus GetFileModificationTime(const std::string& fname,
                                    const IOOptions& opts,
                                    uint64_t* file_mtime,
-                                   IODebugContext* dbg) override {
-    return base_fs_->GetFileModificationTime(fname, opts, file_mtime, dbg);
-  }
+                                   IODebugContext* dbg) override;
 
   IOStatus RenameFile(const std::string& src, const std::string& target,
                       const IOOptions& opts,
-                      IODebugContext* dbg) override {
-    return base_fs_->RenameFile(src, target, opts, dbg);
-  }
+                      IODebugContext* dbg) override;
 
   IOStatus LinkFile(const std::string& src, const std::string& target,
                     const IOOptions& opts,
-                    IODebugContext* dbg) override {
-    return base_fs_->LinkFile(src, target, opts, dbg);
-  }
+                    IODebugContext* dbg) override;
 
   IOStatus NumFileLinks(const std::string& fname, const IOOptions& opts,
-                        uint64_t* count, IODebugContext* dbg) override {
-    return base_fs_->NumFileLinks(fname, opts, count, dbg);
-  }
+                        uint64_t* count, IODebugContext* dbg) override;
 
   IOStatus AreFilesSame(const std::string& first, const std::string& second,
                         const IOOptions& opts, bool* res,
-                        IODebugContext* dbg) override {
-    return base_fs_->AreFilesSame(first, second, opts, res, dbg);
-  }
+                        IODebugContext* dbg) override;
 
   IOStatus LockFile(const std::string& fname, const IOOptions& opts,
-                    FileLock** lock, IODebugContext* dbg) override {
-    return base_fs_->LockFile(fname, opts, lock, dbg);
-  }
+                    FileLock** lock, IODebugContext* dbg) override;
 
   IOStatus UnlockFile(FileLock* lock, const IOOptions& opts,
-                      IODebugContext* dbg) override {
-    return base_fs_->UnlockFile(lock, opts, dbg);
-  }
+                      IODebugContext* dbg) override;
 
   IOStatus GetAbsolutePath(const std::string& db_path,
                            const IOOptions& opts, std::string* output_path,
-                           IODebugContext* dbg) override {
-    return base_fs_->GetAbsolutePath(db_path, opts, output_path, dbg);
-  }
+                           IODebugContext* dbg) override;
 
   IOStatus GetTestDirectory(const IOOptions& opts, std::string* result,
-                            IODebugContext* dbg) override {
-    return base_fs_->GetTestDirectory(opts, result, dbg);
-  }
+                            IODebugContext* dbg) override;
 
   IOStatus GetFreeSpace(const std::string& fname, const IOOptions& opts,
                         uint64_t* free_space,
-                        IODebugContext* dbg) override {
-    return base_fs_->GetFreeSpace(fname, opts, free_space, dbg);
-  }
+                        IODebugContext* dbg) override;
 
   IOStatus IsDirectory(const std::string& path, const IOOptions& opts,
-                       bool* is_dir, IODebugContext* dbg) override {
-   return base_fs_->IsDirectory(path, opts, is_dir, dbg);
-  }
+                       bool* is_dir, IODebugContext* dbg) override;
 
   FileOptions OptimizeForLogWrite(const FileOptions& file_options,
-                                  const DBOptions& db_options) const override {
-    return base_fs_->OptimizeForLogWrite(file_options, db_options);
-  }
+                                  const DBOptions& db_options) const override;
 
   FileOptions OptimizeForManifestWrite(
-      const FileOptions& file_options) const override {
-   return base_fs_->OptimizeForManifestWrite(file_options);
-  }
+      const FileOptions& file_options) const override ;
 
   FileOptions OptimizeForCompactionTableRead(
       const FileOptions& file_options,
-      const ImmutableDBOptions& db_options) const override {
-   return base_fs_->OptimizeForCompactionTableRead(file_options, db_options);
-  }
-
+      const ImmutableDBOptions& db_options) const override;
 #ifdef OS_LINUX
-  Status RegisterDbPaths(const std::vector<std::string>& paths) override {
-    return base_fs_->RegisterDbPaths(paths);
-  }
-  Status UnregisterDbPaths(const std::vector<std::string>& paths) override {
-    return base_fs_->UnregisterDbPaths(paths);
-  }
+  Status RegisterDbPaths(const std::vector<std::string>& paths) override;
+  Status UnregisterDbPaths(const std::vector<std::string>& paths) override;
 #endif
- private:
+
+private:
 
   // TODO:
   // 1. Update Poll API to take into account min_completions
@@ -260,31 +185,17 @@ class ZondaFileSystem : public FileSystem {
   // 2. Currently in case of direct_io, Read API is called because of which call
   // to Poll API fails as it expects IOHandle to be populated.
   IOStatus Poll(std::vector<void*>& io_handles,
-                size_t min_completions) override {
-    return base_fs_->Poll(io_handles, min_completions);
-  }
+                size_t min_completions) override;
 
-  IOStatus AbortIO(std::vector<void*>& io_handles) override {
-    return base_fs_->AbortIO(io_handles);
-  }
+  IOStatus AbortIO(std::vector<void*>& io_handles) override;
 
-  void SupportedOps(int64_t& supported_ops) override {
-    return base_fs_->SupportedOps(supported_ops);
-  }
+  void SupportedOps(int64_t& supported_ops) override;
 
  private:
+
   std::shared_ptr<FileSystem> base_fs_;  // The underlying file system
 };
 
-}
 
-//
-// Zonda FS
-//
-std::shared_ptr<FileSystem> FileSystem::ZondaFS(const std::shared_ptr<FileSystem>& base_fs) {
-  STATIC_AVOID_DESTRUCTION(std::shared_ptr<FileSystem>, instance)
-  (std::make_shared<ZondaFileSystem>(base_fs));
-  return instance;
-}
 
 }
