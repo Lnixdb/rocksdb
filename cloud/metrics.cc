@@ -18,7 +18,7 @@ ZondaFSMetrics& ZondaFSMetrics::Instance() {
   return instance;
 }
 
-prometheus::Counter& ZondaFSMetrics::GetMethodCounter(const std::string& method) {
+prometheus::Counter& ZondaFSMetrics::Method(const std::string& method) {
   std::lock_guard<std::mutex> lock(mutex_);
 
   auto it = counters_.find(method);

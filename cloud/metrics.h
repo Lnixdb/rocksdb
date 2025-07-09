@@ -16,7 +16,7 @@ public:
   static ZondaFSMetrics& Instance();
 
   // 获取某个 method 对应的 Counter
-  prometheus::Counter& GetMethodCounter(const std::string& method);
+  prometheus::Counter& Method(const std::string& method);
 
   // 获取 prometheus registry（用于注册到 Exposer）
   std::shared_ptr<prometheus::Registry> GetRegistry();

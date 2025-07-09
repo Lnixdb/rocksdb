@@ -231,7 +231,7 @@ IOStatus PosixSequentialFile::Read(size_t n, const IOOptions& /*opts*/,
                                    Slice* result, char* scratch,
                                    IODebugContext* /*dbg*/) {
   assert(result != nullptr && !use_direct_io());
-  ZondaFSMetrics::Instance().GetMethodCounter("sequential_read").Increment();
+  ZondaFSMetrics::Instance().Method("sequential_read").Increment();
   IOStatus s;
   size_t r = 0;
   do {
@@ -261,7 +261,7 @@ IOStatus PosixSequentialFile::PositionedRead(uint64_t offset, size_t n,
   assert(IsSectorAligned(offset, GetRequiredBufferAlignment()));
   assert(IsSectorAligned(n, GetRequiredBufferAlignment()));
   assert(IsSectorAligned(scratch, GetRequiredBufferAlignment()));
-  ZondaFSMetrics::Instance().GetMethodCounter("sequential_positioned_read").Increment();
+  ZondaFSMetrics::Instance().Method("sequential_positioned_read").Increment();
 
   IOStatus s;
   ssize_t r = -1;
@@ -295,7 +295,7 @@ IOStatus PosixSequentialFile::PositionedRead(uint64_t offset, size_t n,
 }
 
 IOStatus PosixSequentialFile::Skip(uint64_t n) {
-  ZondaFSMetrics::Instance().GetMethodCounter("sequential_skip").Increment();
+  ZondaFSMetrics::Instance().Method("sequential_skip").Increment();
   if (fseek(file_, static_cast<long int>(n), SEEK_CUR)) {
     return IOError("While fseek to skip " + std::to_string(n) + " bytes",
                    filename_, errno);
@@ -304,7 +304,7 @@ IOStatus PosixSequentialFile::Skip(uint64_t n) {
 }
 
 IOStatus PosixSequentialFile::InvalidateCache(size_t offset, size_t length) {
-  ZondaFSMetrics::Instance().GetMethodCounter("sequential_invalidate_cache").Increment();
+  ZondaFSMetrics::Instance().Method("sequential_invalidate_cache").Increment();
 
 #ifndef OS_LINUX
   (void)offset;
@@ -622,7 +622,7 @@ IOStatus PosixRandomAccessFile::Read(uint64_t offset, size_t n,
     assert(IsSectorAligned(n, GetRequiredBufferAlignment()));
     assert(IsSectorAligned(scratch, GetRequiredBufferAlignment()));
   }
-  ZondaFSMetrics::Instance().GetMethodCounter("random_access_read").Increment();
+  ZondaFSMetrics::Instance().Method("random_access_read").Increment();
   IOStatus s;
   ssize_t r = -1;
   size_t left = n;
@@ -665,7 +665,7 @@ IOStatus PosixRandomAccessFile::MultiRead(FSReadRequest* reqs, size_t num_reqs,
       assert(IsSectorAligned(reqs[i].scratch, GetRequiredBufferAlignment()));
     }
   }
-  ZondaFSMetrics::Instance().GetMethodCounter("random_access_multi_read").Increment();
+  ZondaFSMetrics::Instance().Method("random_access_multi_read").Increment();
 
 #if defined(ROCKSDB_IOURING_PRESENT)
   struct io_uring* iu = nullptr;
@@ -836,7 +836,7 @@ IOStatus PosixRandomAccessFile::Prefetch(uint64_t offset, size_t n,
                                          IODebugContext* /*dbg*/) {
   IOStatus s;
   if (!use_direct_io()) {
-    ZondaFSMetrics::Instance().GetMethodCounter("random_access_prefetch").Increment();
+    ZondaFSMetrics::Instance().Method("random_access_prefetch").Increment();
     ssize_t r = 0;
 #ifdef OS_LINUX
     r = readahead(fd_, offset, n);
@@ -858,7 +858,7 @@ IOStatus PosixRandomAccessFile::Prefetch(uint64_t offset, size_t n,
 
 #if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_AIX)
 size_t PosixRandomAccessFile::GetUniqueId(char* id, size_t max_size) const {
-  ZondaFSMetrics::Instance().GetMethodCounter("random_access_get_unique_id").Increment();
+  ZondaFSMetrics::Instance().Method("random_access_get_unique_id").Increment();
   return PosixHelper::GetUniqueIdFromFile(fd_, id, max_size);
 }
 #endif
@@ -867,7 +867,7 @@ void PosixRandomAccessFile::Hint(AccessPattern pattern) {
   if (use_direct_io()) {
     return;
   }
-  ZondaFSMetrics::Instance().GetMethodCounter("random_access_hint").Increment();
+  ZondaFSMetrics::Instance().Method("random_access_hint").Increment();
   switch (pattern) {
     case kNormal:
       Fadvise(fd_, 0, 0, POSIX_FADV_NORMAL);
@@ -894,7 +894,7 @@ IOStatus PosixRandomAccessFile::InvalidateCache(size_t offset, size_t length) {
   if (use_direct_io()) {
     return IOStatus::OK();
   }
-  ZondaFSMetrics::Instance().GetMethodCounter("random_access_invalidate_cache").Increment();
+  ZondaFSMetrics::Instance().Method("random_access_invalidate_cache").Increment();
 #ifndef OS_LINUX
   (void)offset;
   (void)length;
@@ -920,7 +920,7 @@ IOStatus PosixRandomAccessFile::ReadAsync(
     assert(IsSectorAligned(req.len, GetRequiredBufferAlignment()));
     assert(IsSectorAligned(req.scratch, GetRequiredBufferAlignment()));
   }
-  ZondaFSMetrics::Instance().GetMethodCounter("random_access_read_async").Increment();
+  ZondaFSMetrics::Instance().Method("random_access_read_async").Increment();
 #if defined(ROCKSDB_IOURING_PRESENT)
   // io_uring_queue_init.
   struct io_uring* iu = nullptr;
@@ -1181,7 +1181,7 @@ PosixMmapFile::~PosixMmapFile() {
 
 IOStatus PosixMmapFile::Append(const Slice& data, const IOOptions& /*opts*/,
                                IODebugContext* /*dbg*/) {
-  ZondaFSMetrics::Instance().GetMethodCounter("mmap_file_append").Increment();
+  ZondaFSMetrics::Instance().Method("mmap_file_append").Increment();
   const char* src = data.data();
   size_t left = data.size();
   while (left > 0) {
@@ -1212,7 +1212,7 @@ IOStatus PosixMmapFile::Append(const Slice& data, const IOOptions& /*opts*/,
 
 IOStatus PosixMmapFile::Close(const IOOptions& /*opts*/,
                               IODebugContext* /*dbg*/) {
-  ZondaFSMetrics::Instance().GetMethodCounter("mmap_file_close").Increment();
+  ZondaFSMetrics::Instance().Method("mmap_file_close").Increment();
 
   IOStatus s;
   size_t unused = limit_ - dst_;
@@ -1241,13 +1241,13 @@ IOStatus PosixMmapFile::Close(const IOOptions& /*opts*/,
 
 IOStatus PosixMmapFile::Flush(const IOOptions& /*opts*/,
                               IODebugContext* /*dbg*/) {
-  ZondaFSMetrics::Instance().GetMethodCounter("mmap_file_flush").Increment();
+  ZondaFSMetrics::Instance().Method("mmap_file_flush").Increment();
   return IOStatus::OK();
 }
 
 IOStatus PosixMmapFile::Sync(const IOOptions& /*opts*/,
                              IODebugContext* /*dbg*/) {
-  ZondaFSMetrics::Instance().GetMethodCounter("mmap_file_sync").Increment();
+  ZondaFSMetrics::Instance().Method("mmap_file_sync").Increment();
 #ifdef HAVE_FULLFSYNC
   if (::fcntl(fd_, F_FULLFSYNC) < 0) {
     return IOError("while fcntl(F_FULLSYNC) mmapped file", filename_, errno);
@@ -1266,7 +1266,7 @@ IOStatus PosixMmapFile::Sync(const IOOptions& /*opts*/,
  */
 IOStatus PosixMmapFile::Fsync(const IOOptions& /*opts*/,
                               IODebugContext* /*dbg*/) {
-  ZondaFSMetrics::Instance().GetMethodCounter("mmap_file_fsync").Increment();
+  ZondaFSMetrics::Instance().Method("mmap_file_fsync").Increment();
 #ifdef HAVE_FULLFSYNC
   if (::fcntl(fd_, F_FULLFSYNC) < 0) {
     return IOError("While fcntl(F_FULLSYNC) on mmaped file", filename_, errno);
@@ -1287,13 +1287,13 @@ IOStatus PosixMmapFile::Fsync(const IOOptions& /*opts*/,
  */
 uint64_t PosixMmapFile::GetFileSize(const IOOptions& /*opts*/,
                                     IODebugContext* /*dbg*/) {
-  ZondaFSMetrics::Instance().GetMethodCounter("mmap_file_get_file_size").Increment();
+  ZondaFSMetrics::Instance().Method("mmap_file_get_file_size").Increment();
   size_t used = dst_ - base_;
   return file_offset_ + used;
 }
 
 IOStatus PosixMmapFile::InvalidateCache(size_t offset, size_t length) {
-  ZondaFSMetrics::Instance().GetMethodCounter("mmap_file_invalidate_cache").Increment();
+  ZondaFSMetrics::Instance().Method("mmap_file_invalidate_cache").Increment();
 #ifndef OS_LINUX
   (void)offset;
   (void)length;
@@ -1312,7 +1312,7 @@ IOStatus PosixMmapFile::InvalidateCache(size_t offset, size_t length) {
 IOStatus PosixMmapFile::Allocate(uint64_t offset, uint64_t len,
                                  const IOOptions& /*opts*/,
                                  IODebugContext* /*dbg*/) {
-  ZondaFSMetrics::Instance().GetMethodCounter("mmap_file_allocate").Increment();
+  ZondaFSMetrics::Instance().Method("mmap_file_allocate").Increment();
   assert(offset <= static_cast<uint64_t>(std::numeric_limits<off_t>::max()));
   assert(len <= static_cast<uint64_t>(std::numeric_limits<off_t>::max()));
   TEST_KILL_RANDOM("PosixMmapFile::Allocate:0");
@@ -1620,7 +1620,7 @@ PosixRandomRWFile::~PosixRandomRWFile() {
 IOStatus PosixRandomRWFile::Write(uint64_t offset, const Slice& data,
                                   const IOOptions& /*opts*/,
                                   IODebugContext* /*dbg*/) {
-  ZondaFSMetrics::Instance().GetMethodCounter("random_rw_write").Increment();
+  ZondaFSMetrics::Instance().Method("random_rw_write").Increment();
   const char* src = data.data();
   size_t nbytes = data.size();
   if (!PosixPositionedWrite(fd_, src, nbytes, static_cast<off_t>(offset))) {
@@ -1635,7 +1635,7 @@ IOStatus PosixRandomRWFile::Write(uint64_t offset, const Slice& data,
 IOStatus PosixRandomRWFile::Read(uint64_t offset, size_t n,
                                  const IOOptions& /*opts*/, Slice* result,
                                  char* scratch, IODebugContext* /*dbg*/) const {
-  ZondaFSMetrics::Instance().GetMethodCounter("random_rw_read").Increment();
+  ZondaFSMetrics::Instance().Method("random_rw_read").Increment();
   size_t left = n;
   char* ptr = scratch;
   while (left > 0) {
@@ -1666,13 +1666,13 @@ IOStatus PosixRandomRWFile::Read(uint64_t offset, size_t n,
 
 IOStatus PosixRandomRWFile::Flush(const IOOptions& /*opts*/,
                                   IODebugContext* /*dbg*/) {
-  ZondaFSMetrics::Instance().GetMethodCounter("random_rw_flush").Increment();
+  ZondaFSMetrics::Instance().Method("random_rw_flush").Increment();
   return IOStatus::OK();
 }
 
 IOStatus PosixRandomRWFile::Sync(const IOOptions& /*opts*/,
                                  IODebugContext* /*dbg*/) {
-  ZondaFSMetrics::Instance().GetMethodCounter("random_rw_sync").Increment();
+  ZondaFSMetrics::Instance().Method("random_rw_sync").Increment();
 #ifdef HAVE_FULLFSYNC
   if (::fcntl(fd_, F_FULLFSYNC) < 0) {
     return IOError("while fcntl(F_FULLFSYNC) random rw file", filename_, errno);
@@ -1687,7 +1687,7 @@ IOStatus PosixRandomRWFile::Sync(const IOOptions& /*opts*/,
 
 IOStatus PosixRandomRWFile::Fsync(const IOOptions& /*opts*/,
                                   IODebugContext* /*dbg*/) {
-  ZondaFSMetrics::Instance().GetMethodCounter("random_rw_fsync").Increment();
+  ZondaFSMetrics::Instance().Method("random_rw_fsync").Increment();
 #ifdef HAVE_FULLFSYNC
   if (::fcntl(fd_, F_FULLFSYNC) < 0) {
     return IOError("While fcntl(F_FULLSYNC) random rw file", filename_, errno);
@@ -1702,7 +1702,7 @@ IOStatus PosixRandomRWFile::Fsync(const IOOptions& /*opts*/,
 
 IOStatus PosixRandomRWFile::Close(const IOOptions& /*opts*/,
                                   IODebugContext* /*dbg*/) {
-  ZondaFSMetrics::Instance().GetMethodCounter("random_rw_close").Increment();
+  ZondaFSMetrics::Instance().Method("random_rw_close").Increment();
   if (close(fd_) < 0) {
     return IOError("While close random read/write file", filename_, errno);
   }
