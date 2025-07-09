@@ -35,12 +35,12 @@
 #include <deque>
 #include <set>
 #include <vector>
-#include <iostream>
+
+#include <rocksdb/file_system.h>
 
 #include "rocksdb/options.h"
 #include "rocksdb/slice.h"
-
-#include <rocksdb/file_system.h>
+#include "cloud/metrics.h"
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -192,7 +192,10 @@ private:
   void SupportedOps(int64_t& supported_ops) override;
 
  private:
+
   std::shared_ptr<FileSystem> base_fs_;  // The underlying file system
 };
+
+
 
 }
