@@ -42,20 +42,24 @@
 
 #include "rocksdb/options.h"
 #include "rocksdb/slice.h"
+#include <hdfs/hdfs.h>
 
 namespace ROCKSDB_NAMESPACE {
 
-class ZondaFileSystem : public FileSystem {
+class HadoopFileSystem : public FileSystem {
  public:
-  ZondaFileSystem(const std::shared_ptr<FileSystem>& base_fs);
+  HadoopFileSystem(const std::shared_ptr<FileSystem>& base_fs);
 
-  static const char* kClassName() { return "ZondaFileSystem"; }
+  HadoopFileSystem(const std::string& nn_uri, const std::string& user);
+
+
+  static const char* kClassName() { return "HadoopFileSystem"; }
   const char* Name() const override { return kClassName(); }
   const char* NickName() const override { return kDefaultName(); }
 
-  ~ZondaFileSystem() override = default;
+  ~HadoopFileSystem() override = default;
   bool IsInstanceOf(const std::string& name) const override {
-    if (name == "zonda") {
+    if (name == "hdfs") {
       return true;
     } else {
       return FileSystem::IsInstanceOf(name);
@@ -172,6 +176,11 @@ class ZondaFileSystem : public FileSystem {
   FileOptions OptimizeForCompactionTableRead(
       const FileOptions& file_options,
       const ImmutableDBOptions& db_options) const override;
+
+  FileOptions OptimizeForCompactionTableWrite(
+      const FileOptions& file_options,
+      const ImmutableDBOptions& immutable_ops) const override;
+
 #ifdef OS_LINUX
   Status RegisterDbPaths(const std::vector<std::string>& paths) override;
   Status UnregisterDbPaths(const std::vector<std::string>& paths) override;
@@ -193,7 +202,8 @@ private:
   void SupportedOps(int64_t& supported_ops) override;
 
  private:
-
+  const std::string hdfs_user_;
+  const std::string nn_uri_;
   std::shared_ptr<FileSystem> base_fs_;  // The underlying file system
 };
 

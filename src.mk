@@ -120,6 +120,8 @@ LIB_SOURCES =                                                   \
   env/mock_env.cc                                               \
   env/unique_id_gen.cc                                          \
   cloud/zonda_file_system.cc                                    \
+  cloud/hadoop_file_system.cc                                   \
+  cloud/hadoop_io.cc                                            \
   cloud/metrics.cc    											\
   file/delete_scheduler.cc                                      \
   file/file_prefetch_buffer.cc                                  \

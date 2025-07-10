@@ -105,9 +105,12 @@ endif()
 
 include(CMakeDependentOption)
 
+find_package(hdfs3 REQUIRED)
 find_package(prometheus-cpp CONFIG REQUIRED)
 list(APPEND THIRDPARTY_LIBS prometheus-cpp::core)
 list(APPEND THIRDPARTY_LIBS prometheus-cpp::pull)
+list(APPEND THIRDPARTY_LIBS hdfs3::hdfs3)
+
 
 if(MSVC)
   option(WITH_GFLAGS "build with GFlags" OFF)
@@ -762,6 +765,8 @@ set(SOURCES
         env/mock_env.cc
         env/unique_id_gen.cc
         cloud/zonda_file_system.cc
+        cloud/hadoop_file_system.cc
+        cloud/hadoop_io.cc
         cloud/metrics.cc
         file/delete_scheduler.cc
         file/file_prefetch_buffer.cc
@@ -1530,6 +1535,11 @@ if(WITH_TESTS)
       utilities/agg_merge/test_agg_merge.cc
       utilities/cassandra/test_utils.cc
       cloud/example/cloud_simple.cc
+          include/rocksdb/cloud/hadoop_file_system.h
+          cloud/hadoop_file_system.cc
+          cloud/hadoop_io.cc
+          cloud/hadoop_io.h
+          cloud/example/hdfs_simple.cc
   )
   enable_testing()
   add_custom_target(rocksdb_check COMMAND ${CMAKE_CTEST_COMMAND})
