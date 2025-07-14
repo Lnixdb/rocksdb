@@ -1,9 +1,12 @@
 #pragma once
-
+#include <iostream>
 #include <rocksdb/file_system.h>
 #include <hdfs/hdfs.h>
 
 namespace ROCKSDB_NAMESPACE {
+
+void errLog(const std::string& func, const std::string& fname);
+void okLog(const std::string& func, const std::string& fname);
 
 class HDFSSequentialFile : public FSSequentialFile {
 public:

@@ -2,6 +2,14 @@
 
 namespace ROCKSDB_NAMESPACE {
 
+void errLog(const std::string& func, const std::string& fname) {
+  std::cout << func << " error: " <<  hdfsGetLastError() << " fname:" << fname << std::endl;
+}
+
+void okLog(const std::string& func, const std::string& fname) {
+  std::cout << func << " ok: " <<  hdfsGetLastError() << " fname:" << fname << std::endl;
+};
+
 HDFSSequentialFile::HDFSSequentialFile(hdfsFS conn,  hdfsFile fd,
   const std::string &fname) : filename_(fname), nn_conn_(conn), fd_(fd) {
 
@@ -10,7 +18,6 @@ HDFSSequentialFile::HDFSSequentialFile(hdfsFS conn,  hdfsFile fd,
 HDFSSequentialFile::~HDFSSequentialFile() {
   if (nn_conn_ && fd_) {
     hdfsCloseFile(nn_conn_, fd_);
-    hdfsDisconnect(nn_conn_);
     fd_ = nullptr;
     nn_conn_ = nullptr;
   }
@@ -25,6 +32,7 @@ IOStatus HDFSSequentialFile::Read(size_t n, const IOOptions& opts,
     r = hdfsRead(nn_conn_, fd_, scratch, n);
   } while (r == -1 && errno == EINTR);
   if (r == -1) {
+    errLog("HDFSSequentialFile::Read", filename_);
     return IOStatus::IOError(hdfsGetLastError(),filename_ +  " sequential read");
   }
   *result = Slice(scratch, r);
@@ -41,10 +49,12 @@ IOStatus HDFSSequentialFile::PositionedRead(uint64_t offset, size_t n,
 IOStatus HDFSSequentialFile::Skip(uint64_t n) {
   auto seek_curr = hdfsTell(nn_conn_, fd_);
   if (seek_curr == -1) {
+    errLog("HDFSSequentialFile::Skip", filename_);
     return IOStatus::IOError(hdfsGetLastError(),
          filename_ +  " sequential tell");
   }
   if (hdfsSeek(nn_conn_, fd_, seek_curr + n) == -1) {
+    errLog("HDFSSequentialFile::Seek", filename_);
     return IOStatus::IOError(hdfsGetLastError(),
        filename_ +  " sequential skip");
   }
@@ -58,7 +68,6 @@ IOStatus HDFSSequentialFile::InvalidateCache(size_t offset, size_t length) {
 HDFSRandomAccessFile::~HDFSRandomAccessFile() {
   if (nn_conn_ && fd_) {
     hdfsCloseFile(nn_conn_, fd_);
-    hdfsDisconnect(nn_conn_);
     fd_ = nullptr;
     nn_conn_ = nullptr;
   }
@@ -69,6 +78,7 @@ IOStatus HDFSRandomAccessFile::Read(uint64_t offset, size_t n,
                                     char* scratch, IODebugContext* dbg) const {
   IOStatus s;
   if (hdfsSeek(nn_conn_, fd_, offset) == -1) {
+    errLog("HDFSRandomAccessFile::Seek", filename_);
     return IOStatus::IOError(hdfsGetLastError(),
        filename_ +  " sequential seek");
   }
@@ -87,6 +97,7 @@ IOStatus HDFSRandomAccessFile::Read(uint64_t offset, size_t n,
     left -= r;
   }
   if (r < 0) {
+    errLog("HDFSRandomAccessFile::read", filename_);
     s = IOStatus::IOError(hdfsGetLastError(),
        filename_ +  " sequential read");
   }
@@ -114,7 +125,7 @@ IOStatus HDFSRandomAccessFile::InvalidateCache(size_t offset, size_t length) {
 }
 
 HDFSWritableFile::~HDFSWritableFile()  {
-    IOStatus s = HDFSWritableFile::Close(IOOptions(), nullptr);
+    //IOStatus s = HDFSWritableFile::Close(IOOptions(), nullptr);
 }
 
 // 参照 PosixMmapFile 的 Truncate 实现, 直接返回
@@ -126,9 +137,6 @@ IOStatus HDFSWritableFile::Truncate(uint64_t /*size*/, const IOOptions& /*opts*/
 IOStatus HDFSWritableFile::Close(const IOOptions &options, IODebugContext *dbg)  {
     if (fd_ && nn_conn_) {
         if(hdfsCloseFile(nn_conn_, fd_) != 0) {
-            return IOStatus::IOError(hdfsGetLastError());
-        }
-        if (hdfsDisconnect(nn_conn_) != 0) {
             return IOStatus::IOError(hdfsGetLastError());
         }
       fd_ = nullptr;
@@ -143,6 +151,7 @@ IOStatus HDFSWritableFile::Append(const Slice& data, const IOOptions& opts,
     size_t nbytes = data.size();
     tSize bytes_written = hdfsWrite(nn_conn_, fd_, src, nbytes);
     if (bytes_written == -1) {
+      errLog("HDFSWritableFile::write", filename_);
         return IOStatus::IOError(hdfsGetLastError());
     }
     file_size_ += bytes_written;
@@ -157,6 +166,7 @@ IOStatus HDFSWritableFile::Append(const Slice& data, const IOOptions& opts,
 
 IOStatus HDFSWritableFile::Flush(const IOOptions& opts, IODebugContext* dbg)  {
     if(hdfsFlush(nn_conn_, fd_) == -1) {
+      errLog("HDFSWritableFile::flush", filename_);
       return IOStatus::IOError(hdfsGetLastError());
     }
     return IOStatus::OK();
@@ -164,6 +174,7 @@ IOStatus HDFSWritableFile::Flush(const IOOptions& opts, IODebugContext* dbg)  {
 
 IOStatus HDFSWritableFile::Sync(const IOOptions& opts, IODebugContext* dbg)  {
     if (hdfsSync(nn_conn_, fd_) != 0) {
+      errLog("HDFSWritableFile::sync", filename_);
         return IOStatus::IOError(hdfsGetLastError());
     }
     return IOStatus::OK();
@@ -171,6 +182,7 @@ IOStatus HDFSWritableFile::Sync(const IOOptions& opts, IODebugContext* dbg)  {
 
 IOStatus HDFSWritableFile::Fsync(const IOOptions& opts, IODebugContext* dbg)  {
     if (hdfsSync(nn_conn_, fd_) != 0) {
+      errLog("HDFSWritableFile::fsync", filename_);
         return IOStatus::IOError(hdfsGetLastError());
     }
     return IOStatus::OK();

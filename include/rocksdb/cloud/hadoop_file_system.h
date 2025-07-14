@@ -46,6 +46,9 @@
 
 namespace ROCKSDB_NAMESPACE {
 
+std::string hdfs_benchmark_nn_uri = "hdfs://10.192.64.73:9000";
+std::string hdfs_benchmark_user = "hadoopuser";
+
 class HadoopFileSystem : public FileSystem {
  public:
   HadoopFileSystem(const std::shared_ptr<FileSystem>& base_fs);
@@ -205,6 +208,7 @@ private:
   const std::string hdfs_user_;
   const std::string nn_uri_;
   std::shared_ptr<FileSystem> base_fs_;  // The underlying file system
+  hdfsFS conn_;
 };
 
 

@@ -37,7 +37,11 @@ HadoopFileSystem::HadoopFileSystem(
  HadoopFileSystem::HadoopFileSystem(const std::string& nn_uri,
                                    const std::string& user) :
     hdfs_user_(user),nn_uri_(nn_uri) {
-
+  hdfsFS conn = nullptr;
+  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
+    std::exit(-1);
+  }
+  conn_ = conn;
 }
 
 IOStatus HadoopFileSystem::NewSequentialFile(const std::string& fname,
@@ -45,18 +49,13 @@ IOStatus HadoopFileSystem::NewSequentialFile(const std::string& fname,
                            std::unique_ptr<FSSequentialFile>* result,
                            IODebugContext* dbg)  {
   result->reset();
-  // 连接 HDFS
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
-  }
   // 打开文件
-  hdfsFile file = hdfsOpenFile(conn, fname.c_str(), O_RDONLY, 0, 0, 0);
+  hdfsFile file = hdfsOpenFile(conn_, fname.c_str(), O_RDONLY, 0, 0, 0);
   if (!file) {
-    hdfsDisconnect(conn);
+    errLog("NewSequentialFile::open", fname);
     return IOStatus::IOError(hdfsGetLastError());
   }
-  result->reset(new HDFSSequentialFile(conn, file, fname));
+  result->reset(new HDFSSequentialFile(conn_, file, fname));
   return IOStatus::OK();
 }
 
@@ -65,19 +64,13 @@ IOStatus HadoopFileSystem::NewRandomAccessFile(const std::string& fname,
                              std::unique_ptr<FSRandomAccessFile>* result,
                              IODebugContext* dbg)  {
   result->reset();
-  // 连接 HDFS
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
-  }
-
   // 打开文件
-  hdfsFile file = hdfsOpenFile(conn, fname.c_str(), O_RDONLY, 0, 0, 0);
+  hdfsFile file = hdfsOpenFile(conn_, fname.c_str(), O_RDONLY, 0, 0, 0);
   if (!file) {
-    hdfsDisconnect(conn);
+    errLog("NewRandomAccessFile::open", fname);
     return IOStatus::IOError(hdfsGetLastError());
   }
-  result->reset(new HDFSRandomAccessFile(conn, file, fname));
+  result->reset(new HDFSRandomAccessFile(conn_, file, fname));
   return IOStatus::OK();
 }
 
@@ -86,24 +79,20 @@ IOStatus HadoopFileSystem::NewWritableFile(const std::string& fname,
                           std::unique_ptr<FSWritableFile>* result,
                           IODebugContext* dbg)  {
   result->reset();
-  // 连接 HDFS
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
-  }
-  if (hdfsExists(conn,fname.c_str()) == 0) {
-    if (hdfsDelete(conn, fname.c_str(), 0) != 0) {
+  if (hdfsExists(conn_,fname.c_str()) == 0) {
+    if (hdfsDelete(conn_, fname.c_str(), 0) != 0) {
+      errLog("NewWritableFile::delete", fname);
       return IOStatus::IOError(hdfsGetLastError());
     }
   }
+
   // 打开文件
-  auto file = hdfsOpenFile(conn, fname.c_str(), O_CREAT | O_WRONLY , 0, 0, 0);
+  auto file = hdfsOpenFile(conn_, fname.c_str(), O_CREAT | O_WRONLY , 0, 0, 0);
   if (!file) {
-    hdfsDisconnect(conn);
+    errLog("NewWritableFile::open", fname);
     return IOStatus::IOError(hdfsGetLastError());
   }
-
-  result->reset(new HDFSWritableFile(conn, file, fname));
+  result->reset(new HDFSWritableFile(conn_, file, fname));
   return IOStatus::OK();
 }
 
@@ -120,22 +109,16 @@ IOStatus HadoopFileSystem::ReuseWritableFile(const std::string& fname,
                            std::unique_ptr<FSWritableFile>* result,
                            IODebugContext* dbg)  {
   result->reset();
-  // 连接 HDFS
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
-  }
-  if (hdfsRename(conn, old_fname.c_str(), fname.c_str()) == -1) {
-    hdfsDisconnect(conn);
+  if (hdfsRename(conn_, old_fname.c_str(), fname.c_str()) == -1) {
+    errLog("ReuseWritableFile::rename", fname + "-" + old_fname);
     return IOStatus::IOError(hdfsGetLastError());
   }
-  hdfsFile file = hdfsOpenFile(conn, fname.c_str(), O_WRONLY ,0,0,0);
+  hdfsFile file = hdfsOpenFile(conn_, fname.c_str(), O_WRONLY ,0,0,0);
   if (!file) {
-    hdfsDisconnect(conn);
+    errLog("ReuseWritableFile::open", fname);
     return IOStatus::IOError(hdfsGetLastError());
   }
-
-  result->reset(new HDFSWritableFile(conn, file, fname));
+  result->reset(new HDFSWritableFile(conn_, file, fname));
   return IOStatus::OK();
 }
 
@@ -155,7 +138,6 @@ IOStatus HadoopFileSystem::NewMemoryMappedFileBuffer(
 IOStatus HadoopFileSystem::NewDirectory(const std::string& name, const IOOptions& /*opts*/,
                       std::unique_ptr<FSDirectory>* result,
                       IODebugContext* /*dbg*/) {
-  result->reset();
   result->reset(new HDFSDirectory());
   return IOStatus::OK();
 }
@@ -163,22 +145,10 @@ IOStatus HadoopFileSystem::NewDirectory(const std::string& name, const IOOptions
 IOStatus HadoopFileSystem::FileExists(const std::string& fname,
                     const IOOptions& opts,
                     IODebugContext* dbg)  {
-  IOStatus status;
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
+  if (hdfsExists(conn_,fname.c_str()) == 0) {
+    return IOStatus::OK();
   }
-  if (hdfsExists(conn,fname.c_str()) == 0) {
-    status =  IOStatus::OK();
-  } else {
-    if (strstr(hdfsGetLastError(), "Success")) {
-      status =  IOStatus::NotFound("FileExists");
-    } else {
-      status =  IOStatus::IOError(hdfsGetLastError());
-    }
-  }
-  hdfsDisconnect(conn);
-  return status;
+  return IOStatus::NotFound("FileExists");
 }
 
 IOStatus HadoopFileSystem::GetChildren(const std::string& dir,
@@ -186,14 +156,12 @@ IOStatus HadoopFileSystem::GetChildren(const std::string& dir,
                      std::vector<std::string>* result,
                      IODebugContext* dbg)  {
   result->clear();
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
-  }
   int num = 0;
-  auto entries = hdfsListDirectory(conn, dir.c_str(), &num);
+  auto entries = hdfsListDirectory(conn_, dir.c_str(), &num);
   if (!entries) {
-    hdfsDisconnect(conn);
+    if (strstr(hdfsGetLastError(), "NotFoundException")) {
+      return IOStatus::NotFound();
+    }
     return IOStatus::IOError(hdfsGetLastError());
   }
 
@@ -210,93 +178,65 @@ IOStatus HadoopFileSystem::GetChildren(const std::string& dir,
     }
   }
   hdfsFreeFileInfo(entries, num);
-  hdfsDisconnect(conn);
   return IOStatus::OK();
 }
 
 IOStatus HadoopFileSystem::DeleteFile(const std::string& fname,
                     const IOOptions& opts,
                     IODebugContext* dbg)  {
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
-  }
-  if (hdfsDelete(conn, fname.c_str(), 0) == -1) {
-
-    hdfsDisconnect(conn);
+  if (hdfsDelete(conn_, fname.c_str(), 0) == -1) {
+    if (strstr(hdfsGetLastError(), "NotFoundException")) {
+      return IOStatus::OK();
+    }
+    errLog("HadoopFileSystem::DeleteFile", fname);
     return IOStatus::IOError(hdfsGetLastError());
   }
-  hdfsDisconnect(conn);
   return IOStatus::OK();
 }
 
 IOStatus HadoopFileSystem::CreateDir(const std::string& name,
                   const IOOptions& opts,
                   IODebugContext* dbg)  {
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
-  }
-  if (hdfsCreateDirectory(conn, name.c_str()) == -1) {
-
-    hdfsDisconnect(conn);
+  if (hdfsCreateDirectory(conn_, name.c_str()) == -1) {
+    errLog("HadoopFileSystem::CreateDir", name);
     return IOStatus::IOError(hdfsGetLastError());
   }
-  hdfsDisconnect(conn);
   return IOStatus::OK();
 }
 
 IOStatus HadoopFileSystem::CreateDirIfMissing(const std::string& name,
                             const IOOptions& opts,
                             IODebugContext* dbg)  {
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
-  }
-  if (hdfsExists(conn, name.c_str()) == 0) {
-    hdfsDisconnect(conn);
+  if (hdfsExists(conn_, name.c_str()) == 0) {
     return IOStatus::OK();
   }
-
-  if (hdfsCreateDirectory(conn, name.c_str()) != 0) {
-    hdfsDisconnect(conn);
+  if (hdfsCreateDirectory(conn_, name.c_str()) != 0) {
+    errLog("HadoopFileSystem::CreateDirIfMissing", name);
     return IOStatus::IOError(hdfsGetLastError());
   }
-  hdfsDisconnect(conn);
   return IOStatus::OK();
 }
 
 IOStatus HadoopFileSystem::DeleteDir(const std::string& name,
                   const IOOptions& opts,
                   IODebugContext* dbg)  {
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
-  }
-  if (hdfsDelete(conn, name.c_str(), 1) != 0) {
-    hdfsDisconnect(conn);
+  if (hdfsDelete(conn_, name.c_str(), 1) != 0) {
+    errLog("HadoopFileSystem::DeleteDir", name);
     return IOStatus::IOError(hdfsGetLastError());
   }
-  hdfsDisconnect(conn);
   return IOStatus::OK();
 }
 
 IOStatus HadoopFileSystem::GetFileSize(const std::string& fname,
                      const IOOptions& opts,
                      uint64_t* size, IODebugContext* dbg)  {
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
-  }
-  hdfsFileInfo* info = hdfsGetPathInfo(conn, fname.c_str());
+  hdfsFileInfo* info = hdfsGetPathInfo(conn_, fname.c_str());
   if (!info) {
-
-    hdfsDisconnect(conn);
+    errLog("HadoopFileSystem::GetFileSize", fname);
     return IOStatus::IOError(hdfsGetLastError());
   }
   *size = info->mSize;
   hdfsFreeFileInfo(info, 1);
-  hdfsDisconnect(conn);
   return IOStatus::OK();
 }
 
@@ -304,18 +244,13 @@ IOStatus HadoopFileSystem::GetFileModificationTime(const std::string& fname,
                                  const IOOptions& opts,
                                  uint64_t* file_mtime,
                                  IODebugContext* dbg)  {
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
-  }
-  hdfsFileInfo* info = hdfsGetPathInfo(conn, fname.c_str());
+  hdfsFileInfo* info = hdfsGetPathInfo(conn_, fname.c_str());
   if (!info) {
-    hdfsDisconnect(conn);
+    errLog("HadoopFileSystem::GetFileModificationTime", fname);
     return IOStatus::IOError(hdfsGetLastError());
   }
   *file_mtime = info->mLastMod / 1000;
   hdfsFreeFileInfo(info, 1);
-  hdfsDisconnect(conn);
   return IOStatus::OK();
 }
 
@@ -323,21 +258,15 @@ IOStatus HadoopFileSystem::RenameFile(const std::string& src,
                     const std::string& target,
                     const IOOptions& opts,
                     IODebugContext* dbg)  {
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
-  }
   // HDFS  不支持目标文件覆盖, 需要先删除
-  if (hdfsExists(conn, target.c_str()) == 0) {
-    hdfsDelete(conn, target.c_str(), 0);
+  if (hdfsExists(conn_, target.c_str()) == 0) {
+    hdfsDelete(conn_, target.c_str(), 0);
   }
 
-  //std::this_thread::sleep_for(std::chrono::seconds(10));
-  if(hdfsRename(conn, src.c_str(), target.c_str()) != 0) {
-    hdfsDisconnect(conn);
+  if(hdfsRename(conn_, src.c_str(), target.c_str()) != 0) {
+    errLog("HadoopFileSystem::RenameFile", src + "-" + target);
     return IOStatus::IOError(hdfsGetLastError());
   }
-  hdfsDisconnect(conn);
   return IOStatus::OK();
 }
 
@@ -379,20 +308,13 @@ IOStatus HadoopFileSystem::GetAbsolutePath(const std::string& db_path,
     *output_path = db_path;
     return IOStatus::OK();
   }
-
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
-  }
-
-  hdfsFileInfo* info = hdfsGetPathInfo(conn, db_path.c_str());
+  hdfsFileInfo* info = hdfsGetPathInfo(conn_, db_path.c_str());
   if (!info) {
-    hdfsDisconnect(conn);
+    errLog("HadoopFileSystem::GetAbsolutePath", db_path);
     return IOStatus::IOError(hdfsGetLastError());
   }
   *output_path = info->mName;
   hdfsFreeFileInfo(info, 1);
-  hdfsDisconnect(conn);
   return IOStatus::OK();
 }
 
@@ -417,20 +339,14 @@ IOStatus HadoopFileSystem::GetFreeSpace(const std::string& fname,
 IOStatus HadoopFileSystem::IsDirectory(const std::string& path,
                      const IOOptions& opts,
                      bool* is_dir, IODebugContext* dbg)  {
-  hdfsFS conn = nullptr;
-  if (auto s = connectHDFS(nn_uri_, hdfs_user_, conn); !s.ok()) {
-    return s;
-  }
-
-  hdfsFileInfo* info = hdfsGetPathInfo(conn, path.c_str());
+  hdfsFileInfo* info = hdfsGetPathInfo(conn_, path.c_str());
   if (!info) {
-    hdfsDisconnect(conn);
+    errLog("HadoopFileSystem::IsDirectory", path);
     return IOStatus::IOError(hdfsGetLastError());
   }
 
   *is_dir = (info->mKind == kObjectKindDirectory);
   hdfsFreeFileInfo(info, 1);
-  hdfsDisconnect(conn);
   return IOStatus::OK();
 }
 
@@ -491,10 +407,10 @@ void HadoopFileSystem::SupportedOps(int64_t& supported_ops)  {
 
 static FactoryFunc<FileSystem> hadoop_filesystem_reg =
     ObjectLibrary::Default()->AddFactory<FileSystem>(
-        ObjectLibrary::PatternEntry("hadoop").AddSeparator("://", false),
+        ObjectLibrary::PatternEntry("hdfs").AddSeparator("://", false),
         [](const std::string& /* uri */, std::unique_ptr<FileSystem>* f,
            std::string* /* errmsg */) {
-          f->reset(new HadoopFileSystem(FileSystem::Default()));
+          f->reset(new HadoopFileSystem(hdfs_benchmark_nn_uri, hdfs_benchmark_user));
           return f->get();
         });
 
