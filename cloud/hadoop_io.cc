@@ -76,6 +76,7 @@ HDFSRandomAccessFile::~HDFSRandomAccessFile() {
 IOStatus HDFSRandomAccessFile::Read(uint64_t offset, size_t n,
                                     const IOOptions& opts, Slice* result,
                                     char* scratch, IODebugContext* dbg) const {
+  std::lock_guard<std::mutex> lock(read_mutex_);
   IOStatus s;
   if (hdfsSeek(nn_conn_, fd_, offset) == -1) {
     errLog("HDFSRandomAccessFile::Seek", filename_);

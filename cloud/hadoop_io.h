@@ -50,6 +50,7 @@ private:
   std::string filename_;
   hdfsFS nn_conn_;
   hdfsFile fd_;
+  mutable std::mutex read_mutex_;
 };
 
 class HDFSWritableFile : public FSWritableFile {
