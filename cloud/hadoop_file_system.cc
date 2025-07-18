@@ -11,6 +11,7 @@
 #include "cloud/metrics.h"
 #include "hadoop_io.h"
 #include "rocksdb/utilities/object_registry.h"
+#include "monitoring/iostats_context_imp.h"
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -49,6 +50,8 @@ IOStatus HadoopFileSystem::NewSequentialFile(const std::string& fname,
                            std::unique_ptr<FSSequentialFile>* result,
                            IODebugContext* dbg)  {
   result->reset();
+  IOSTATS_TIMER_GUARD(open_nanos);
+
   // 打开文件
   hdfsFile file = hdfsOpenFile(conn_, fname.c_str(), O_RDONLY, 0, 0, 0);
   if (!file) {
@@ -64,6 +67,7 @@ IOStatus HadoopFileSystem::NewRandomAccessFile(const std::string& fname,
                              std::unique_ptr<FSRandomAccessFile>* result,
                              IODebugContext* dbg)  {
   result->reset();
+  IOSTATS_TIMER_GUARD(open_nanos);
   // 打开文件
   hdfsFile file = hdfsOpenFile(conn_, fname.c_str(), O_RDONLY, 0, 0, 0);
   if (!file) {
@@ -79,6 +83,7 @@ IOStatus HadoopFileSystem::NewWritableFile(const std::string& fname,
                           std::unique_ptr<FSWritableFile>* result,
                           IODebugContext* dbg)  {
   result->reset();
+  IOSTATS_TIMER_GUARD(open_nanos);
   if (hdfsExists(conn_,fname.c_str()) == 0) {
     if (hdfsDelete(conn_, fname.c_str(), 0) != 0) {
       errLog("NewWritableFile::delete", fname);
