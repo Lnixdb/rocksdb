@@ -93,6 +93,9 @@
 #include "utilities/merge_operators/bytesxor.h"
 #include "utilities/merge_operators/sortlist.h"
 #include "utilities/persistent_cache/block_cache_tier.h"
+#include "cloud/metrics.h"
+#include "monitoring/statistics_impl.h"
+
 #ifdef MEMKIND
 #include "memory/memkind_kmem_allocator.h"
 #endif
@@ -1767,6 +1770,9 @@ DEFINE_bool(read_with_latest_user_timestamp, true,
 DEFINE_string(cache_uri, "", "Full URI for creating a custom cache object");
 DEFINE_string(secondary_cache_uri, "",
               "Full URI for creating a custom secondary cache object");
+
+DEFINE_bool(zonda_metrics, true, "Zonda fs metrics switch");
+
 static class std::shared_ptr<ROCKSDB_NAMESPACE::SecondaryCache> secondary_cache;
 
 static const bool FLAGS_prefix_size_dummy __attribute__((__unused__)) =
@@ -2395,6 +2401,24 @@ class Stats {
                   (now - last_report_finish_) / 1000000.0,
                   (now - start_) / 1000000.0);
 
+          // ticker monitor
+          if (FLAGS_zonda_metrics) {
+            std::map<std::string, uint64_t> stats_map;
+            dbstats->getTickerMap(&stats_map);
+            for (const auto& p : stats_map) {
+              ZondaFSMetrics::Instance().Ticker(p.first, p.second);
+            }
+            // latency monitor
+            for (const auto& h : HistogramsNameMap) {
+              HistogramData histogram;
+              dbstats->histogramData(h.first, &histogram);
+              ZondaFSMetrics::Instance().Histograms(h.second, "avg", histogram.average);
+              ZondaFSMetrics::Instance().Histograms(h.second, "p50", histogram.median);
+              ZondaFSMetrics::Instance().Histograms(h.second, "p95", histogram.percentile95);
+              ZondaFSMetrics::Instance().Histograms(h.second, "p99", histogram.percentile95);
+            }
+            dbstats->Reset();
+          }
           if (id_ == 0 && FLAGS_stats_per_interval) {
             std::string stats;
 
@@ -4901,6 +4925,9 @@ class Benchmark {
     }
 
     options.listeners.emplace_back(listener_);
+
+    auto zonda_listener = std::make_shared<ZondaFSEventListener>();
+    options.listeners.emplace_back(zonda_listener);
 
     if (options.file_checksum_gen_factory == nullptr) {
       if (FLAGS_file_checksum) {
