@@ -4,6 +4,9 @@
 #include "cloud/metrics.h"
 #include "rocksdb/utilities/object_registry.h"
 
+#include "zonda_fs.h"
+#include "error_code.h"
+
 namespace ROCKSDB_NAMESPACE {
 
 
@@ -16,6 +19,14 @@ IOStatus ZondaFileSystem::NewSequentialFile(const std::string& fname,
                            const FileOptions& options,
                            std::unique_ptr<FSSequentialFile>* result,
                            IODebugContext* dbg)  {
+  auto zonda_master_addr = "list://127.0.0.1:28200,127.0.0.1:28201,127.0.0.1:28202";
+  auto zonda_cluster_id = "test_cluster_1";
+  auto zonda_fs_client_id = "rocksdb1";
+
+  auto error_code = file_client::InitFileClientEnv(zonda_master_addr, zonda_cluster_id, zonda_fs_client_id);
+  if (comm::IsNotOk(error_code)) {
+  }
+
   return base_fs_->NewSequentialFile(fname, options, result, dbg);
 }
 
