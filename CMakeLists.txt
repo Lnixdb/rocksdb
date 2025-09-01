@@ -1597,6 +1597,7 @@ if(WITH_TESTS)
         utilities/types_util_test.cc
         utilities/util_merge_operators_test.cc
         utilities/write_batch_with_index/write_batch_with_index_test.cc
+        cloud/example/zonda_filesystem_simple_test.cc
 	${PLUGIN_TESTS}
     )
   endif()
@@ -1608,8 +1609,6 @@ if(WITH_TESTS)
       table/mock_table.cc
       utilities/agg_merge/test_agg_merge.cc
       utilities/cassandra/test_utils.cc
-          cloud/example/zonda_filesystem_simple.cc
-      cloud/zonda_file_system_io.cc
   )
   enable_testing()
   add_custom_target(rocksdb_check COMMAND ${CMAKE_CTEST_COMMAND})
