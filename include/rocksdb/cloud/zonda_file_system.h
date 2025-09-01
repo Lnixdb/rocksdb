@@ -42,11 +42,34 @@
 #include "rocksdb/slice.h"
 #include "cloud/metrics.h"
 
+#include "file_client/zonda_fs.h" // file_client::OpenFile
+#include "comm/error_code.h"      // comm::IsNotOk
+#include "comm/context.h"         // comm::Ctx
+#include "comm/request_id.h"      // comm::RequestId::Next()
+
 namespace ROCKSDB_NAMESPACE {
 
-class ZondaFileSystem : public FileSystem {
+// The file system for rocksdb. It allows configuring the rocksdb
+// FileSystem used for the zonda.
+//
+class ZondaFileSystemOptions {
+private:
+public:
+  std::string master_addr;
+  std::string cluster_id;
+  std::string client_id;
+  static const char* kName() { return "ZondaFileSystemOptions"; }
+};
+
+class ZondaFileSystem final : public FileSystem {
  public:
-  ZondaFileSystem(const std::shared_ptr<FileSystem>& base_fs);
+  static Status NewZondaFileSystem(const std::shared_ptr<FileSystem>& base_fs,
+                                   const ZondaFileSystemOptions& options,
+                                   ZondaFileSystem** zfs);
+
+  explicit ZondaFileSystem(const std::shared_ptr<FileSystem>& base_fs);
+  ZondaFileSystem(const ZondaFileSystemOptions& options,
+                  const std::shared_ptr<FileSystem>& base_fs);
 
   static const char* kClassName() { return "ZondaFileSystem"; }
   const char* Name() const override { return kClassName(); }
@@ -59,6 +82,11 @@ class ZondaFileSystem : public FileSystem {
     } else {
       return FileSystem::IsInstanceOf(name);
     }
+  }
+
+  void CloseFile(const std::string& fname) {
+    comm::Ctx close_ctx(comm::RequestId::Next(), "close_file");
+    file_client::CloseFile(&close_ctx, fname);
   }
 
   IOStatus NewSequentialFile(const std::string& fname,
@@ -162,22 +190,15 @@ class ZondaFileSystem : public FileSystem {
   IOStatus IsDirectory(const std::string& path, const IOOptions& opts,
                        bool* is_dir, IODebugContext* dbg) override;
 
-  FileOptions OptimizeForLogWrite(const FileOptions& file_options,
-                                  const DBOptions& db_options) const override;
-
-  FileOptions OptimizeForManifestWrite(
-      const FileOptions& file_options) const override ;
-
-  FileOptions OptimizeForCompactionTableRead(
-      const FileOptions& file_options,
-      const ImmutableDBOptions& db_options) const override;
 #ifdef OS_LINUX
   Status RegisterDbPaths(const std::vector<std::string>& paths) override;
   Status UnregisterDbPaths(const std::vector<std::string>& paths) override;
 #endif
 
+  IOStatus NewLogger(const std::string& fname, const IOOptions& io_opts,
+                             std::shared_ptr<Logger>* result,
+                             IODebugContext* dbg);
 private:
-
   // TODO:
   // 1. Update Poll API to take into account min_completions
   // and returns if number of handles in io_handles (any order) completed is
@@ -192,7 +213,7 @@ private:
   void SupportedOps(int64_t& supported_ops) override;
 
  private:
-
+  ZondaFileSystemOptions zonda_fs_options_;
   std::shared_ptr<FileSystem> base_fs_;  // The underlying file system
 };
 

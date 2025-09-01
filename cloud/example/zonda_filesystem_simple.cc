@@ -10,17 +10,31 @@
 using namespace std;
 
 int main() {
+    rocksdb::ZondaFileSystemOptions zonda_options;
+    zonda_options.client_id = "";
+    zonda_options.cluster_id = "";
+    zonda_options.master_addr = "127.0.0.1";
+
     auto fs_posix = rocksdb::FileSystem::Default();
-    auto fs_zonda = std::make_shared<rocksdb::ZondaFileSystem>(fs_posix);
-    auto cloud_env = rocksdb::NewCompositeEnv(fs_zonda);
+
+    rocksdb::ZondaFileSystem* zfs;
+    auto status = rocksdb::ZondaFileSystem::NewZondaFileSystem(
+      fs_posix, zonda_options, &zfs);
+    if (!status.ok()) {
+      std::cerr << status.ToString() << std::endl;
+      return -1;
+    }
+
+    std::shared_ptr<rocksdb::ZondaFileSystem> fs_zonda(zfs);
+    auto zonda_env = rocksdb::NewCompositeEnv(fs_zonda);
 
     rocksdb::DB* db;
     rocksdb::Options options;
-    options.env = cloud_env.get();
-    options.create_if_missing = true;  // 如果数据库不存在则创建
+    options.env = zonda_env.get();
+    options.create_if_missing = true;
 
     // 1. 打开数据库
-    rocksdb::Status status = rocksdb::DB::Open(options, "./test_db", &db);
+    status = rocksdb::DB::Open(options, "/zonda/fs/test_db", &db);
     if (!status.ok()) {
         cerr << "Failed to open database: " << status.ToString() << endl;
         return 1;

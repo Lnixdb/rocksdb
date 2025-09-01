@@ -1153,8 +1153,10 @@ string(REGEX REPLACE "[^0-9: /-]+" "" GIT_DATE "${GIT_DATE}")
 set(BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/build_version.cc)
 configure_file(util/build_version.cc.in ${BUILD_VERSION_CC} @ONLY)
 
-set(ZONDA_FS_SOURCE_DIR_INCLUDE /home/lanyan/zonda2)
-set(ZONDA_FS_DEP /home/lanyan/zonda2/deps)
+set(ZONDA_FS_PROTO_DIR_INCLUDE /home/lanyan/zonda2/proto)
+set(ZONDA_FS_SOURCE_DIR_INCLUDE /home/lanyan/zonda2/src)
+set(ZONDA_FS_DEP /home/lanyan/zonda2)
+
 # brpc
 set(ZONDA_FS_BRPC_INCLUDE_DIR ${ZONDA_FS_DEP}/brpc/include)
 set(ZONDA_FS_BRPC_LIB_DIR ${ZONDA_FS_DEP}/brpc/lib)
@@ -1177,8 +1179,6 @@ set(ZONDA_FS_GFLAG_LIB_DIR ${ZONDA_FS_DEP}/gflags/lib)
 set(ZONDA_FS_URING_INCLUDE_DIR ${ZONDA_FS_DEP}/liburing/include)
 set(ZONDA_FS_URING_LIB_DIR ${ZONDA_FS_DEP}/liburing/lib)
 
-include_directories(${ZONDA_FILESYSTEM_INCLUDE_DIR})
-
 add_library(${ROCKSDB_STATIC_LIB} STATIC ${SOURCES} ${BUILD_VERSION_CC})
 target_include_directories(${ROCKSDB_STATIC_LIB} PUBLIC
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
@@ -1190,6 +1190,7 @@ target_include_directories(${ROCKSDB_STATIC_LIB} PUBLIC
   ${ZONDA_FS_GFLAG_INCLUDE_DIR}  # gflag
   ${ZONDA_FS_URING_INCLUDE_DIR}  # uring
   ${ZONDA_FS_SOURCE_DIR_INCLUDE} # source code dir
+  ${ZONDA_FS_PROTO_DIR_INCLUDE}  # proto code dir
 )
 
 target_link_libraries(${ROCKSDB_STATIC_LIB} PRIVATE
@@ -1230,6 +1231,7 @@ if(ROCKSDB_BUILD_SHARED)
     ${ZONDA_FS_GFLAG_INCLUDE_DIR}  # gflag
     ${ZONDA_FS_URING_INCLUDE_DIR}  # uring
     ${ZONDA_FS_SOURCE_DIR_INCLUDE} # source code dir
+    ${ZONDA_FS_PROTO_DIR_INCLUDE}  # proto  code dir
   )
   target_link_libraries(${ROCKSDB_SHARED_LIB} PRIVATE
     ${THIRDPARTY_LIBS} ${SYSTEM_LIBS}
@@ -1606,7 +1608,8 @@ if(WITH_TESTS)
       table/mock_table.cc
       utilities/agg_merge/test_agg_merge.cc
       utilities/cassandra/test_utils.cc
-      cloud/example/cloud_simple.cc
+          cloud/example/zonda_filesystem_simple.cc
+      cloud/zonda_file_system_io.cc
   )
   enable_testing()
   add_custom_target(rocksdb_check COMMAND ${CMAKE_CTEST_COMMAND})
