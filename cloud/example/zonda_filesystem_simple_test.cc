@@ -11,9 +11,9 @@ using namespace std;
 
 int main() {
     rocksdb::ZondaFileSystemOptions zonda_options;
-    zonda_options.client_id = "";
-    zonda_options.cluster_id = "";
-    zonda_options.master_addr = "127.0.0.1";
+    zonda_options.client_id = "test_cluster_lanyan";
+    zonda_options.cluster_id = "test_cluster_lanyan";
+    zonda_options.master_addr = "list://127.0.0.1:38100,127.0.0.1:38101,127.0.0.1:38102";
 
     auto fs_posix = rocksdb::FileSystem::Default();
 
