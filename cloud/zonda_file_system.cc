@@ -176,7 +176,7 @@ IOStatus ZondaFileSystem::GetChildren(const std::string& dir,
   if (comm::IsNotOk(code)) {
     return ZondaIOError("While opendir", dir, code);
   }
-  for (const auto sub : dir_stat.children) {
+  for (const auto& sub : dir_stat.children) {
     result->emplace_back(sub);
   }
   return IOStatus::OK();
@@ -327,7 +327,6 @@ IOStatus ZondaFileSystem::GetTestDirectory(const IOOptions& opts,
   char buf[100];
   snprintf(buf, sizeof(buf), "/tmp/rocksdbtest-%d", int(geteuid()));
   *result = buf;
-  IOOptions opts;
   return CreateDirIfMissing(*result, opts, nullptr);
 }
 

@@ -1155,7 +1155,7 @@ configure_file(util/build_version.cc.in ${BUILD_VERSION_CC} @ONLY)
 
 set(ZONDA_FS_PROTO_DIR_INCLUDE /home/lanyan/zonda2/proto)
 set(ZONDA_FS_SOURCE_DIR_INCLUDE /home/lanyan/zonda2)
-set(ZONDA_FS_DEP /home/lanyan/zonda2)
+set(ZONDA_FS_DEP /home/lanyan/zonda2/deps)
 
 # brpc
 set(ZONDA_FS_BRPC_INCLUDE_DIR ${ZONDA_FS_DEP}/brpc/include)

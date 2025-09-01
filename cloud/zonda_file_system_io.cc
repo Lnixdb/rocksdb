@@ -34,7 +34,8 @@ ZondaFSSequentialFile::ZondaFSSequentialFile(
 }
 
 ZondaFSSequentialFile::~ZondaFSSequentialFile() {
-  file_client::CloseFile(handler_);
+  comm::Ctx ctx(comm::RequestId::Next(), "seq_file_des");
+  file_client::CloseFile(&ctx, handler_);
 }
 
 IOStatus ZondaFSSequentialFile::Read(size_t n, const IOOptions& opts,
@@ -43,7 +44,7 @@ IOStatus ZondaFSSequentialFile::Read(size_t n, const IOOptions& opts,
   assert(result != nullptr && !use_direct_io());
   IOStatus s;
   comm::Ctx ctx(comm::RequestId::Next(), "read_seq_file");
-  auto [code, r] = file_client::Read(&ctx, handler_, scratch, n);
+  auto [code, r] = file_client::Read(&ctx, handler_, n, scratch);
   *result = Slice(scratch, r);
   if (r < n) {
     if (code == comm::ZONDA_FS_EOF) {
@@ -64,7 +65,8 @@ IOStatus ZondaFSSequentialFile::PositionedRead(uint64_t offset, size_t n,
 
 IOStatus ZondaFSSequentialFile::Skip(uint64_t n) {
   comm::Ctx ctx(comm::RequestId::Next(), "seek_file");
-  auto code = file_client::Seek(&ctx, handler_, n, file_client::SeekWhence::WHENCE_SEEK_CUR);
+  auto whence = static_cast<int>(file_client::SeekWhence::WHENCE_SEEK_CUR);
+  auto code = file_client::Seek(&ctx, handler_, n, whence);
   if (comm::IsNotOk(code)) {
     return ZondaIOError("While fseek to skip " + std::to_string(n) + " bytes", filename_, code);
   }
@@ -82,7 +84,8 @@ ZondaFSRandomAccessFile::ZondaFSRandomAccessFile(
 }
 
 ZondaFSRandomAccessFile::~ZondaFSRandomAccessFile() {
-  file_client::CloseFile(handler_);
+  comm::Ctx ctx(comm::RequestId::Next(), "random_file_des");
+  file_client::CloseFile(&ctx, handler_);
 }
 
 IOStatus ZondaFSRandomAccessFile::Read(uint64_t offset, size_t n,
@@ -141,7 +144,8 @@ IOStatus ZondaFSRandomAccessFile::InvalidateCache(size_t offset, size_t length) 
 
 ZondaFSWritableFile::~ZondaFSWritableFile()  {
   if (!closed_) {
-    file_client::CloseFile(handler_);
+    comm::Ctx ctx(comm::RequestId::Next(), "writable_file_des");
+    file_client::CloseFile(&ctx, handler_);
   }
 }
 
@@ -153,7 +157,8 @@ IOStatus ZondaFSWritableFile::Truncate(uint64_t /*size*/, const IOOptions& /*opt
 
 IOStatus ZondaFSWritableFile::Close(const IOOptions &options, IODebugContext *dbg)  {
   IOStatus s;
-  auto code = file_client::CloseFile(handler_);
+  comm::Ctx ctx(comm::RequestId::Next(), "writable_file_close");
+  auto code = file_client::CloseFile(&ctx, handler_);
   if (comm::IsNotOk(code)) {
     s = ZondaIOError("While closing file after writing", filename_, code);
   }
@@ -167,11 +172,11 @@ IOStatus ZondaFSWritableFile::Append(const Slice& data, const IOOptions& opts,
   size_t nbytes = data.size();
 
   comm::Ctx ctx(comm::RequestId::Next(), "append");
-  auto code = file_client::Append(&ctx, handler_, nbytes, src);
-  if (comm::IsNotOk(code)) {
-    return ZondaIOError("While appending to file", filename_, code);
+  auto res = file_client::Append(&ctx, handler_, nbytes, src);
+  if (comm::IsNotOk(res.first)) {
+    return ZondaIOError("While appending to file", filename_, res.first);
   }
-  file_size_ += nbytes;
+  file_size_ += res.second;
   return IOStatus::OK();
 }
 
@@ -194,13 +199,7 @@ IOStatus ZondaFSWritableFile::Fsync(const IOOptions& opts, IODebugContext* dbg) 
 }
 
 uint64_t ZondaFSWritableFile::GetFileSize(const IOOptions& opts, IODebugContext* dbg)  {
-  uint64_t file_size = 0;
-  comm::Ctx ctx(comm::RequestId::Next(), "stat_file");
-  auto code = file_client::StatFile(&ctx, handler_, &file_size);
-  if (comm::IsNotOk(code)) {
-    return ZondaIOError("while stat a file for GetFileSize", filename_, code);
-  }
-  return file_size;
+  return file_size_;
 }
 
 IOStatus ZondaFSWritableFile::InvalidateCache(size_t offset, size_t length) {
