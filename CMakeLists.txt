@@ -1203,7 +1203,7 @@ target_link_libraries(${ROCKSDB_STATIC_LIB} PRIVATE
   ${ZONDA_FS_FIU_LIB_DIR}/libfiu.a
   ${ZONDA_FS_GFLAG_LIB_DIR}/libgflags.a
   ${ZONDA_FS_URING_LIB_DIR}/liburing.a
-  ${ZONDA_FS_PROTO_DIR_INCLUDE}/liburing-ffi.a
+  ${ZONDA_FS_URING_LIB_DIR}/liburing-ffi.a
   # third part deps
   dl
   rt
@@ -1650,7 +1650,7 @@ if(WITH_TESTS)
                 ${ZONDA_FS_FIU_LIB_DIR}/libfiu.a
                 ${ZONDA_FS_GFLAG_LIB_DIR}/libgflags.a
                 ${ZONDA_FS_URING_LIB_DIR}/liburing.a
-                ${ZONDA_FS_PROTO_DIR_INCLUDE}/liburing-ffi.a
+                ${ZONDA_FS_URING_LIB_DIR}/liburing-ffi.a
         )
       endif()
 
