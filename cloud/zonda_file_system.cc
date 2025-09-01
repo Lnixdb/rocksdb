@@ -84,24 +84,18 @@ IOStatus ZondaFileSystem::NewWritableFile(const std::string& fname,
   IOSTATS_TIMER_GUARD(open_nanos);
 
   IOStatus s;
-  std::cout << "NewWritableFile file:" << fname << std::endl;
   comm::Ctx remove_ctx(comm::RequestId::Next(), "writable_remove");
   // POSIX (O_CREAT | O_TRUNC)
   auto status = FileExists(fname, IOOptions(), nullptr);
   if (status.ok()) {
-    std::cout << "NewWritableFile file exist ok, " << fname << std::endl;
     auto code = file_client::RemoveFile(&remove_ctx, fname);
     if (comm::IsNotOk(code)) {
-      std::cout << "NewWritableFile file remove " << fname << std::endl;
       return ZondaIOError("While open a file for O_TRUNC", fname, code);
     }
   }
-  std::cout << "NewWritableFile not exist, file:" << fname << std::endl;
-  if (!status.IsPathNotFound()) {
-    std::cout << "NewWritableFile path not found, file:" << fname << std::endl;
+  if (!status.IsNotFound()) {
     return ZondaIOError("While open a file for O_TRUNC", fname);
   }
-  std::cout << "NewWritableFile path ok, file:" << fname << std::endl;
 
   comm::Ctx ctx(comm::RequestId::Next(), "open_writable_file");
   auto write = static_cast<uint32_t>(file_client::OpenFlags::OPEN_FLAGS_WRONLY);
@@ -109,12 +103,9 @@ IOStatus ZondaFileSystem::NewWritableFile(const std::string& fname,
   auto flag = write | create;
   auto [code, file_handle] = file_client::OpenFile(&ctx, fname, flag);
   if (comm::IsNotOk(code)) {
-    std::cout << "NewWritableFile path open, file:" << fname << std::endl;
     CloseFile(fname, file_handle);
     return ZondaIOError("While open a file for appending", fname, code);
   }
-  std::cout << "NewWritableFile successful, file:" << fname << std::endl;
-
   result->reset(new ZondaFSWritableFile(file_handle, fname));
   return IOStatus::OK();
 }
@@ -174,10 +165,16 @@ IOStatus ZondaFileSystem::FileExists(const std::string& fname,
   file_client::FileStat file_stat;
   comm::Ctx ctx(comm::RequestId::Next(), "file_exists");
   auto code = file_client::StatFile(&ctx, fname, &file_stat);
-  if (comm::IsNotOk(code)) {
-    return ZondaIOError("file exist ", fname, code);
+  if (code == comm::ZONDA_OK) {
+    return IOStatus::OK();
   }
-  return IOStatus::OK();
+  switch (code) {
+    case comm::ZONDA_FS_FILE_NOT_EXIST:
+    case comm::ZONDA_FS_DIR_NOT_EXIST:
+      return IOStatus::NotFound();
+    default:
+      return ZondaIOError("Unexpected error", fname, code);
+  }
 }
 
 IOStatus ZondaFileSystem::GetChildren(const std::string& dir,
@@ -187,8 +184,15 @@ IOStatus ZondaFileSystem::GetChildren(const std::string& dir,
   file_client::DirStat dir_stat;
   comm::Ctx ctx(comm::RequestId::Next(), "dir stat");
   auto code = StatDir(&ctx, dir, &dir_stat);
+
   if (comm::IsNotOk(code)) {
-    return ZondaIOError("While opendir", dir, code);
+    switch (code) {
+      case comm::ZONDA_FS_FILE_NOT_EXIST:
+      case comm::ZONDA_FS_DIR_NOT_EXIST:
+        return IOStatus::NotFound();
+      default:
+        return ZondaIOError("Unexpected error", dir, code);
+    }
   }
   for (const auto& sub : dir_stat.children) {
     result->emplace_back(sub);

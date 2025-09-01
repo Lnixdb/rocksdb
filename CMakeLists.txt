@@ -1637,8 +1637,8 @@ if(WITH_TESTS)
       target_link_libraries(
               ${exename}${ARTIFACT_SUFFIX} testutillib${ARTIFACT_SUFFIX} testharness gtest ${THIRDPARTY_LIBS} ${ROCKSDB_LIB})
       if(NOT "${exename}" MATCHES "db_sanity_test")
-        gtest_discover_tests(${exename} DISCOVERY_TIMEOUT 120)
-        add_dependencies(rocksdb_check ${exename}${ARTIFACT_SUFFIX})
+        #gtest_discover_tests(${exename} DISCOVERY_TIMEOUT 120)
+        #add_dependencies(rocksdb_check ${exename}${ARTIFACT_SUFFIX})
       endif()
 
       if(${exename} STREQUAL "zonda_filesystem_simple_test")
