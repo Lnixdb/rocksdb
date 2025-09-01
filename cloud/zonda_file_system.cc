@@ -84,18 +84,24 @@ IOStatus ZondaFileSystem::NewWritableFile(const std::string& fname,
   IOSTATS_TIMER_GUARD(open_nanos);
 
   IOStatus s;
+  std::cout << "NewWritableFile file:" << fname << std::endl;
   comm::Ctx remove_ctx(comm::RequestId::Next(), "writable_remove");
   // POSIX (O_CREAT | O_TRUNC)
   auto status = FileExists(fname, IOOptions(), nullptr);
   if (status.ok()) {
+    std::cout << "NewWritableFile file exist ok, " << fname << std::endl;
     auto code = file_client::RemoveFile(&remove_ctx, fname);
     if (comm::IsNotOk(code)) {
+      std::cout << "NewWritableFile file remove " << fname << std::endl;
       return ZondaIOError("While open a file for O_TRUNC", fname, code);
     }
   }
+  std::cout << "NewWritableFile not exist, file:" << fname << std::endl;
   if (!status.IsPathNotFound()) {
+    std::cout << "NewWritableFile path not found, file:" << fname << std::endl;
     return ZondaIOError("While open a file for O_TRUNC", fname);
   }
+  std::cout << "NewWritableFile path ok, file:" << fname << std::endl;
 
   comm::Ctx ctx(comm::RequestId::Next(), "open_writable_file");
   auto write = static_cast<uint32_t>(file_client::OpenFlags::OPEN_FLAGS_WRONLY);
@@ -103,9 +109,12 @@ IOStatus ZondaFileSystem::NewWritableFile(const std::string& fname,
   auto flag = write | create;
   auto [code, file_handle] = file_client::OpenFile(&ctx, fname, flag);
   if (comm::IsNotOk(code)) {
+    std::cout << "NewWritableFile path open, file:" << fname << std::endl;
     CloseFile(fname, file_handle);
     return ZondaIOError("While open a file for appending", fname, code);
   }
+  std::cout << "NewWritableFile successful, file:" << fname << std::endl;
+
   result->reset(new ZondaFSWritableFile(file_handle, fname));
   return IOStatus::OK();
 }
