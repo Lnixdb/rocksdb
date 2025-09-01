@@ -98,6 +98,13 @@ IOStatus ZondaFileSystem::NewWritableFile(const std::string& fname,
   }
 
   comm::Ctx ctx(comm::RequestId::Next(), "open_writable_file");
+  RedundantType rtype;
+  rtype.set_encode_type(ENCodeType::ENCODE_EC);
+  rtype.set_data_shards(2);
+  rtype.set_code_shards(1);
+  rtype.set_stripe_length(64 * 1024);
+  ctx.SetRType(rtype);
+
   auto write = static_cast<uint32_t>(file_client::OpenFlags::OPEN_FLAGS_WRONLY);
   auto create = static_cast<uint32_t>(file_client::OpenFlags::OPEN_FLAGS_CREAT);
   auto flag = write | create;
