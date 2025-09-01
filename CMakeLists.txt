@@ -1633,7 +1633,19 @@ if(WITH_TESTS)
         EXCLUDE_FROM_DEFAULT_BUILD_RELWITHDEBINFO 1
         OUTPUT_NAME ${exename}${ARTIFACT_SUFFIX}
       )
-      target_link_libraries(${exename}${ARTIFACT_SUFFIX} testutillib${ARTIFACT_SUFFIX} testharness gtest ${THIRDPARTY_LIBS} ${ROCKSDB_LIB})
+      target_link_libraries(
+              ${exename}${ARTIFACT_SUFFIX} testutillib${ARTIFACT_SUFFIX} testharness gtest
+              ${THIRDPARTY_LIBS}
+              ${ROCKSDB_LIB}
+              ${ZONDA_FS_BRPC_LIB_DIR}/libbrpc.a
+              ${ZONDA_FS_CLIENT_LIB_DIR}/libfile_client.a
+              ${ZONDA_FS_FMT_LIB_DIR}/libfmt.a
+              ${ZONDA_FS_ISAL_LIB_DIR}/libisal.a
+              ${ZONDA_FS_FIU_LIB_DIR}/libfiu.a
+              ${ZONDA_FS_GFLAG_LIB_DIR}/libgflags.a
+              ${ZONDA_FS_URING_LIB_DIR}/liburing.a
+              ${ZONDA_FS_URING_LIB_DIR}/liburing-ffi.a
+      )
       if(NOT "${exename}" MATCHES "db_sanity_test")
         gtest_discover_tests(${exename} DISCOVERY_TIMEOUT 120)
         add_dependencies(rocksdb_check ${exename}${ARTIFACT_SUFFIX})
