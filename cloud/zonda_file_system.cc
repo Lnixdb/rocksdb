@@ -93,7 +93,7 @@ IOStatus ZondaFileSystem::NewWritableFile(const std::string& fname,
       return ZondaIOError("While open a file for O_TRUNC", fname, code);
     }
   }
-  if (!status.IsNotFound()) {
+  if (!status.IsPathNotFound()) {
     return ZondaIOError("While open a file for O_TRUNC", fname);
   }
 
