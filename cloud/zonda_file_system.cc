@@ -1,10 +1,5 @@
 #include "rocksdb/cloud/zonda_file_system.h"
-
 #include <error_code.pb.h>
-#include <utilities/transactions/lock/range/range_tree/lib/portability/toku_instrumentation.h>
-
-#include <iostream>
-
 #include "monitoring/iostats_context_imp.h"
 #include "rocksdb/utilities/object_registry.h"
 #include "zonda_file_system_io.h"
@@ -48,10 +43,10 @@ IOStatus ZondaFileSystem::NewSequentialFile(const std::string& fname,
   IOSTATS_TIMER_GUARD(open_nanos);
 
   comm::Ctx ctx(comm::RequestId::Next(), "sequential_file");
-  auto flag = file_client::OpenFlags::OPEN_FLAGS_RDONLY;
+  auto flag = static_cast<uint32_t>(file_client::OpenFlags::OPEN_FLAGS_RDONLY);
   auto [code, file_handle] = file_client::OpenFile(&ctx, fname, flag);
   if (comm::IsNotOk(code)) {
-    CloseFile(fname);
+    CloseFile(fname, file_handle);
     return ZondaIOError("While opening file for sequentially read", fname, code);
   }
   result->reset(new ZondaFSSequentialFile(file_handle, fname));
@@ -66,10 +61,10 @@ IOStatus ZondaFileSystem::NewRandomAccessFile(const std::string& fname,
   IOSTATS_TIMER_GUARD(open_nanos);
 
   comm::Ctx ctx(comm::RequestId::Next(), "random_file");
-  auto flag = file_client::OpenFlags::OPEN_FLAGS_RDONLY;
+  auto flag = static_cast<uint32_t>(file_client::OpenFlags::OPEN_FLAGS_RDONLY);
   auto [code, file_handle] = file_client::OpenFile(&ctx, fname, flag);
   if (comm::IsNotOk(code)) {
-    CloseFile(file_handle);
+    CloseFile(fname, file_handle);
     return ZondaIOError("While open a file for random read", fname, code);
   }
   result->reset(new ZondaFSRandomAccessFile(file_handle, fname));
@@ -84,10 +79,11 @@ IOStatus ZondaFileSystem::NewWritableFile(const std::string& fname,
   IOSTATS_TIMER_GUARD(open_nanos);
 
   IOStatus s;
+  comm::Ctx remove_ctx(comm::RequestId::Next(), "writable_remove");
   // POSIX (O_CREAT | O_TRUNC)
   auto status = FileExists(fname, IOOptions(), nullptr);
   if (status.ok()) {
-    auto code = file_client::RemoveFile(fname);
+    auto code = file_client::RemoveFile(&remove_ctx, fname);
     if (comm::IsNotOk(code)) {
       return ZondaIOError("While open a file for O_TRUNC", fname, code);
     }
@@ -102,7 +98,7 @@ IOStatus ZondaFileSystem::NewWritableFile(const std::string& fname,
   auto flag = write | create;
   auto [code, file_handle] = file_client::OpenFile(&ctx, fname, flag);
   if (comm::IsNotOk(code)) {
-    CloseFile(file_handle);
+    CloseFile(fname, file_handle);
     return ZondaIOError("While open a file for appending", fname, code);
   }
   result->reset(new ZondaFSWritableFile(file_handle, fname));
@@ -221,7 +217,7 @@ IOStatus ZondaFileSystem::CreateDirIfMissing(const std::string& name,
 
   auto flag = static_cast<uint32_t>(file_client::CreateFlags::CREATE_FLAGS_PARENTS);
   comm::Ctx create_ctx(comm::RequestId::Next(), "create_dir");
-  auto code = file_client::CreateDir(&create_ctx, name, flag);
+  code = file_client::CreateDir(&create_ctx, name, flag);
   if (comm::IsNotOk(code)) {
     return ZondaIOError("While mkdir if missing", name, code);
   }

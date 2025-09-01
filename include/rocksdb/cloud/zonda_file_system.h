@@ -42,10 +42,10 @@
 #include "rocksdb/slice.h"
 #include "cloud/metrics.h"
 
-#include "file_client/zonda_fs.h" // file_client::OpenFile
-#include "comm/error_code.h"      // comm::IsNotOk
-#include "comm/context.h"         // comm::Ctx
-#include "comm/request_id.h"      // comm::RequestId::Next()
+#include "src/file_client/zonda_fs.h" // file_client::OpenFile
+#include "src/comm/error_code.h"      // comm::IsNotOk
+#include "src/comm/context.h"         // comm::Ctx
+#include "src/comm/request_id.h"      // comm::RequestId::Next()
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -84,9 +84,10 @@ class ZondaFileSystem final : public FileSystem {
     }
   }
 
-  void CloseFile(const std::string& fname) {
+  void CloseFile(const std::string& fname,
+                 std::shared_ptr<file_client::FileHandle> handle) {
     comm::Ctx close_ctx(comm::RequestId::Next(), "close_file");
-    file_client::CloseFile(&close_ctx, fname);
+    file_client::CloseFile(&close_ctx, handle);
   }
 
   IOStatus NewSequentialFile(const std::string& fname,

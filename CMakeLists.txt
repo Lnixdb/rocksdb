@@ -1154,7 +1154,7 @@ set(BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/build_version.cc)
 configure_file(util/build_version.cc.in ${BUILD_VERSION_CC} @ONLY)
 
 set(ZONDA_FS_PROTO_DIR_INCLUDE /home/lanyan/zonda2/proto)
-set(ZONDA_FS_SOURCE_DIR_INCLUDE /home/lanyan/zonda2/src)
+set(ZONDA_FS_SOURCE_DIR_INCLUDE /home/lanyan/zonda2)
 set(ZONDA_FS_DEP /home/lanyan/zonda2)
 
 # brpc
