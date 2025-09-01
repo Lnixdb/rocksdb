@@ -196,9 +196,9 @@ class ZondaFileSystem final : public FileSystem {
   Status UnregisterDbPaths(const std::vector<std::string>& paths) override;
 #endif
 
-  IOStatus NewLogger(const std::string& fname, const IOOptions& io_opts,
-                             std::shared_ptr<Logger>* result,
-                             IODebugContext* dbg);
+  // IOStatus NewLogger(const std::string& fname, const IOOptions& io_opts,
+  //                            std::shared_ptr<Logger>* result,
+  //                            IODebugContext* dbg);
 private:
   // TODO:
   // 1. Update Poll API to take into account min_completions
