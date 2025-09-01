@@ -66,7 +66,7 @@ IOStatus ZondaFSSequentialFile::PositionedRead(uint64_t offset, size_t n,
 IOStatus ZondaFSSequentialFile::Skip(uint64_t n) {
   comm::Ctx ctx(comm::RequestId::Next(), "seek_file");
   auto whence = static_cast<int>(file_client::SeekWhence::WHENCE_SEEK_CUR);
-  auto code = file_client::Seek(&ctx, handler_, n, whence);
+  auto code = file_client::Seek(&ctx, handler_, static_cast<long>(n), whence);
   if (comm::IsNotOk(code)) {
     return ZondaIOError("While fseek to skip " + std::to_string(n) + " bytes", filename_, code);
   }
