@@ -30,9 +30,14 @@ Status ZondaFileSystem::NewZondaFileSystem(
   return Status::OK();
 }
 
-ZondaFileSystem::ZondaFileSystem(
-  const std::shared_ptr<FileSystem>& base_fs){
+ZondaFileSystem::ZondaFileSystem(const std::shared_ptr<FileSystem>& base_fs){
   base_fs_ = base_fs;
+}
+
+ZondaFileSystem::ZondaFileSystem(const ZondaFileSystemOptions& options,
+                  const std::shared_ptr<FileSystem>& base_fs){
+  base_fs_ = base_fs;
+  zonda_fs_options_ = options;
 }
 
 IOStatus ZondaFileSystem::NewSequentialFile(const std::string& fname,

@@ -142,6 +142,11 @@ IOStatus ZondaFSRandomAccessFile::InvalidateCache(size_t offset, size_t length) 
   return IOStatus::NotSupported();
 }
 
+ZondaFSWritableFile::ZondaFSWritableFile(
+    const std::shared_ptr<file_client::FileHandle>& handler,
+    const std::string& fname) : filename_(fname), handler_(handler) {
+}
+
 ZondaFSWritableFile::~ZondaFSWritableFile()  {
   if (!closed_) {
     comm::Ctx ctx(comm::RequestId::Next(), "writable_file_des");

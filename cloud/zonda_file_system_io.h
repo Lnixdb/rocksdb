@@ -65,7 +65,7 @@ class ZondaFSWritableFile : public FSWritableFile {
 public:
 
   ZondaFSWritableFile(const std::shared_ptr<file_client::FileHandle>& handler,
-                        const std::string& filename);
+                      const std::string& filename);
 
   ~ZondaFSWritableFile() override;
 
