@@ -1203,7 +1203,7 @@ target_link_libraries(${ROCKSDB_STATIC_LIB} PRIVATE
   ${ZONDA_FS_FIU_LIB_DIR}/libfiu.a
   ${ZONDA_FS_GFLAG_LIB_DIR}/libgflags.a
   ${ZONDA_FS_URING_LIB_DIR}/liburing.a
-  ${ZONDA_FS_URING_LIB_DIR}/liburing-ffi.a
+  ${ZONDA_FS_PROTO_DIR_INCLUDE}/liburing-ffi.a
   # third part deps
   dl
   rt
@@ -1635,22 +1635,25 @@ if(WITH_TESTS)
         OUTPUT_NAME ${exename}${ARTIFACT_SUFFIX}
       )
       target_link_libraries(
-              ${exename}${ARTIFACT_SUFFIX} testutillib${ARTIFACT_SUFFIX} testharness gtest
-              ${THIRDPARTY_LIBS}
-              ${ROCKSDB_LIB}
-              ${ZONDA_FS_BRPC_LIB_DIR}/libbrpc.a
-              ${ZONDA_FS_CLIENT_LIB_DIR}/libfile_client.a
-              ${ZONDA_FS_FMT_LIB_DIR}/libfmt.a
-              ${ZONDA_FS_ISAL_LIB_DIR}/libisal.a
-              ${ZONDA_FS_FIU_LIB_DIR}/libfiu.a
-              ${ZONDA_FS_GFLAG_LIB_DIR}/libgflags.a
-              ${ZONDA_FS_URING_LIB_DIR}/liburing.a
-              ${ZONDA_FS_URING_LIB_DIR}/liburing-ffi.a
-      )
+              ${exename}${ARTIFACT_SUFFIX} testutillib${ARTIFACT_SUFFIX} testharness gtest ${THIRDPARTY_LIBS} ${ROCKSDB_LIB})
       if(NOT "${exename}" MATCHES "db_sanity_test")
         gtest_discover_tests(${exename} DISCOVERY_TIMEOUT 120)
         add_dependencies(rocksdb_check ${exename}${ARTIFACT_SUFFIX})
       endif()
+
+      if(${exename} STREQUAL "zonda_filesystem_simple_test")
+        target_link_libraries(${exename}${ARTIFACT_SUFFIX}
+                ${ZONDA_FS_BRPC_LIB_DIR}/libbrpc.a
+                ${ZONDA_FS_CLIENT_LIB_DIR}/libfile_client.a
+                ${ZONDA_FS_FMT_LIB_DIR}/libfmt.a
+                ${ZONDA_FS_ISAL_LIB_DIR}/libisal.a
+                ${ZONDA_FS_FIU_LIB_DIR}/libfiu.a
+                ${ZONDA_FS_GFLAG_LIB_DIR}/libgflags.a
+                ${ZONDA_FS_URING_LIB_DIR}/liburing.a
+                ${ZONDA_FS_PROTO_DIR_INCLUDE}/liburing-ffi.a
+        )
+      endif()
+
   endforeach(sourcefile ${TESTS})
 
   if(WIN32)
