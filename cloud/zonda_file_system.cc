@@ -11,7 +11,7 @@ Status ZondaFileSystem::NewZondaFileSystem(
     const ZondaFileSystemOptions& options,
     ZondaFileSystem** zfs) {
   Status status;
-
+  comm::FLAGS_zonda_log_path = "/home/lanyan/rocksdb/build/log";
   auto error_code = file_client::InitFileClientEnv(
       options.master_addr,
       options.cluster_id,
