@@ -1651,6 +1651,15 @@ if(WITH_TESTS)
                 #${ZONDA_FS_URING_LIB_DIR}/liburing.a
                 #${ZONDA_FS_URING_LIB_DIR}/liburing-ffi.a
                 ${ZONDA_FS_BRPC_LIB_DIR}/libbrpc.a
+                dl
+                rt
+                libssl.a
+                libcrypto.a
+                libprotobuf.a
+                libleveldb.a
+                libsnappy.a
+                pthread
+                libz.a
         )
       endif()
 
