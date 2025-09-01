@@ -1643,14 +1643,14 @@ if(WITH_TESTS)
 
       if(${exename} STREQUAL "zonda_filesystem_simple_test")
         target_link_libraries(${exename}${ARTIFACT_SUFFIX}
-                ${ZONDA_FS_BRPC_LIB_DIR}/libbrpc.a
                 ${ZONDA_FS_CLIENT_LIB_DIR}/libfile_client.a
-                ${ZONDA_FS_FMT_LIB_DIR}/libfmt.a
+                #${ZONDA_FS_FMT_LIB_DIR}/libfmt.a
                 ${ZONDA_FS_ISAL_LIB_DIR}/libisal.a
-                ${ZONDA_FS_FIU_LIB_DIR}/libfiu.a
+                #${ZONDA_FS_FIU_LIB_DIR}/libfiu.a
                 ${ZONDA_FS_GFLAG_LIB_DIR}/libgflags.a
-                ${ZONDA_FS_URING_LIB_DIR}/liburing.a
-                ${ZONDA_FS_URING_LIB_DIR}/liburing-ffi.a
+                #${ZONDA_FS_URING_LIB_DIR}/liburing.a
+                #${ZONDA_FS_URING_LIB_DIR}/liburing-ffi.a
+                ${ZONDA_FS_BRPC_LIB_DIR}/libbrpc.a
         )
       endif()
 
