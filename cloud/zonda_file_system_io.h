@@ -1,13 +1,12 @@
 #pragma once
 #include <rocksdb/file_system.h>
 
-#include "file_client/zonda_fs.h"      // file_client::OpenFile
-#include "comm/error_code.h"           // comm::IsNotOk
-#include "comm/context.h"              // comm::Ctx
-#include "comm/request_id.h"           // comm::RequestId::Next()
-#include "file_client/comm/fs_types.h" // SeekWhence
+#include "src/file_client/zonda_fs.h"      // file_client::OpenFile
+#include "src/comm/error_code.h"           // comm::IsNotOk
+#include "src/comm/context.h"              // comm::Ctx
+#include "src/comm/request_id.h"           // comm::RequestId::Next()
+#include "src/file_client/comm/fs_types.h" // SeekWhence
 #include "error_code.pb.h" // comm::ZONDA_OK (error code)
-
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -66,7 +65,7 @@ class ZondaFSWritableFile : public FSWritableFile {
 public:
 
   ZondaFSWritableFile(const std::shared_ptr<file_client::FileHandle>& handler,
-                        const std::string& filename);
+                      const std::string& filename);
 
   ~ZondaFSWritableFile() override;
 

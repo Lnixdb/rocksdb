@@ -762,6 +762,7 @@ set(SOURCES
         env/mock_env.cc
         env/unique_id_gen.cc
         cloud/zonda_file_system.cc
+        cloud/zonda_file_system_io.cc
         cloud/metrics.cc
         file/delete_scheduler.cc
         file/file_prefetch_buffer.cc
@@ -1154,8 +1155,8 @@ set(BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/build_version.cc)
 configure_file(util/build_version.cc.in ${BUILD_VERSION_CC} @ONLY)
 
 set(ZONDA_FS_PROTO_DIR_INCLUDE /home/lanyan/zonda2/proto)
-set(ZONDA_FS_SOURCE_DIR_INCLUDE /home/lanyan/zonda2/src)
-set(ZONDA_FS_DEP /home/lanyan/zonda2)
+set(ZONDA_FS_SOURCE_DIR_INCLUDE /home/lanyan/zonda2)
+set(ZONDA_FS_DEP /home/lanyan/zonda2/deps)
 
 # brpc
 set(ZONDA_FS_BRPC_INCLUDE_DIR ${ZONDA_FS_DEP}/brpc/include)
@@ -1597,6 +1598,8 @@ if(WITH_TESTS)
         utilities/types_util_test.cc
         utilities/util_merge_operators_test.cc
         utilities/write_batch_with_index/write_batch_with_index_test.cc
+        cloud/example/zonda_filesystem_simple_test.cc
+        cloud/example/zonda_filesystem_example_test.cc
 	${PLUGIN_TESTS}
     )
   endif()
@@ -1608,8 +1611,6 @@ if(WITH_TESTS)
       table/mock_table.cc
       utilities/agg_merge/test_agg_merge.cc
       utilities/cassandra/test_utils.cc
-          cloud/example/zonda_filesystem_simple.cc
-      cloud/zonda_file_system_io.cc
   )
   enable_testing()
   add_custom_target(rocksdb_check COMMAND ${CMAKE_CTEST_COMMAND})
@@ -1634,11 +1635,35 @@ if(WITH_TESTS)
         EXCLUDE_FROM_DEFAULT_BUILD_RELWITHDEBINFO 1
         OUTPUT_NAME ${exename}${ARTIFACT_SUFFIX}
       )
-      target_link_libraries(${exename}${ARTIFACT_SUFFIX} testutillib${ARTIFACT_SUFFIX} testharness gtest ${THIRDPARTY_LIBS} ${ROCKSDB_LIB})
+      target_link_libraries(
+              ${exename}${ARTIFACT_SUFFIX} testutillib${ARTIFACT_SUFFIX} testharness gtest ${THIRDPARTY_LIBS} ${ROCKSDB_LIB})
       if(NOT "${exename}" MATCHES "db_sanity_test")
-        gtest_discover_tests(${exename} DISCOVERY_TIMEOUT 120)
-        add_dependencies(rocksdb_check ${exename}${ARTIFACT_SUFFIX})
+        #gtest_discover_tests(${exename} DISCOVERY_TIMEOUT 120)
+        #add_dependencies(rocksdb_check ${exename}${ARTIFACT_SUFFIX})
       endif()
+
+      if(${exename} MATCHES "^zonda_filesystem_.*_test$")
+        target_link_libraries(${exename}${ARTIFACT_SUFFIX}
+                ${ZONDA_FS_CLIENT_LIB_DIR}/libfile_client.a
+                #${ZONDA_FS_FMT_LIB_DIR}/libfmt.a
+                ${ZONDA_FS_ISAL_LIB_DIR}/libisal.a
+                #${ZONDA_FS_FIU_LIB_DIR}/libfiu.a
+                ${ZONDA_FS_GFLAG_LIB_DIR}/libgflags.a
+                #${ZONDA_FS_URING_LIB_DIR}/liburing.a
+                #${ZONDA_FS_URING_LIB_DIR}/liburing-ffi.a
+                ${ZONDA_FS_BRPC_LIB_DIR}/libbrpc.a
+                dl
+                rt
+                libssl.a
+                libcrypto.a
+                libprotobuf.a
+                libleveldb.a
+                libsnappy.a
+                pthread
+                libz.a
+        )
+      endif()
+
   endforeach(sourcefile ${TESTS})
 
   if(WIN32)

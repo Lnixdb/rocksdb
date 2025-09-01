@@ -42,10 +42,10 @@
 #include "rocksdb/slice.h"
 #include "cloud/metrics.h"
 
-#include "file_client/zonda_fs.h" // file_client::OpenFile
-#include "comm/error_code.h"      // comm::IsNotOk
-#include "comm/context.h"         // comm::Ctx
-#include "comm/request_id.h"      // comm::RequestId::Next()
+#include "src/file_client/zonda_fs.h" // file_client::OpenFile
+#include "src/comm/error_code.h"      // comm::IsNotOk
+#include "src/comm/context.h"         // comm::Ctx
+#include "src/comm/request_id.h"      // comm::RequestId::Next()
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -58,6 +58,7 @@ public:
   std::string master_addr;
   std::string cluster_id;
   std::string client_id;
+  std::string log_path;
   static const char* kName() { return "ZondaFileSystemOptions"; }
 };
 
@@ -84,9 +85,10 @@ class ZondaFileSystem final : public FileSystem {
     }
   }
 
-  void CloseFile(const std::string& fname) {
+  void CloseFile(const std::string& fname,
+                 std::shared_ptr<file_client::FileHandle> handle) {
     comm::Ctx close_ctx(comm::RequestId::Next(), "close_file");
-    file_client::CloseFile(&close_ctx, fname);
+    file_client::CloseFile(&close_ctx, handle);
   }
 
   IOStatus NewSequentialFile(const std::string& fname,
@@ -195,9 +197,9 @@ class ZondaFileSystem final : public FileSystem {
   Status UnregisterDbPaths(const std::vector<std::string>& paths) override;
 #endif
 
-  IOStatus NewLogger(const std::string& fname, const IOOptions& io_opts,
-                             std::shared_ptr<Logger>* result,
-                             IODebugContext* dbg);
+  // IOStatus NewLogger(const std::string& fname, const IOOptions& io_opts,
+  //                            std::shared_ptr<Logger>* result,
+  //                            IODebugContext* dbg);
 private:
   // TODO:
   // 1. Update Poll API to take into account min_completions
