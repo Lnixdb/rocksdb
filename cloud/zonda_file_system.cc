@@ -11,11 +11,12 @@ Status ZondaFileSystem::NewZondaFileSystem(
     const ZondaFileSystemOptions& options,
     ZondaFileSystem** zfs) {
   Status status;
-  comm::FLAGS_zonda_log_path = "/home/lanyan/log";
   auto error_code = file_client::InitFileClientEnv(
       options.master_addr,
       options.cluster_id,
-      options.client_id);
+      options.client_id,
+      "/home/lanyan/log");
+
   if (comm::IsNotOk(error_code)) {
     return Status::InvalidArgument(comm::ErrorCode_Name(error_code));
   }
@@ -244,7 +245,7 @@ IOStatus ZondaFileSystem::CreateDirIfMissing(const std::string& name,
   comm::Ctx create_ctx(comm::RequestId::Next(), "create_dir");
   code = file_client::CreateDir(&create_ctx, name, flag);
   if (comm::IsNotOk(code)) {
-    return ZondaIOError("While mkdir if missing", name, code);
+    return IOStatus::IOError("While mkdir if missing", name, code);
   }
   return IOStatus::OK();
 }

@@ -97,9 +97,7 @@ IOStatus ZondaFSRandomAccessFile::Read(uint64_t offset, size_t n,
   size_t left = n;
   char* ptr = scratch;
   comm::ErrorCode code;
-  std::cout << "ZondaFSRandomAccessFile start" << std::endl;
   while (left > 0) {
-    std::cout << "ZondaFSRandomAccessFile::Read Loop" << std::endl;
     auto p = file_client::Read(&ctx, handler_, left, offset, ptr);
     code= p.first;
 
