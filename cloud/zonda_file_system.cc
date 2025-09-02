@@ -245,7 +245,7 @@ IOStatus ZondaFileSystem::CreateDirIfMissing(const std::string& name,
   comm::Ctx create_ctx(comm::RequestId::Next(), "create_dir");
   code = file_client::CreateDir(&create_ctx, name, flag);
   if (comm::IsNotOk(code)) {
-    return IOStatus::IOError("While mkdir if missing", name, code);
+    return IOStatus::IOError("While mkdir if missing", name);
   }
   return IOStatus::OK();
 }
