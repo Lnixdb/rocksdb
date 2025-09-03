@@ -95,6 +95,7 @@
 #include "utilities/persistent_cache/block_cache_tier.h"
 #include "cloud/metrics.h"
 #include "monitoring/statistics_impl.h"
+#include "rocksdb/cloud/zonda_file_system.h"
 
 #ifdef MEMKIND
 #include "memory/memkind_kmem_allocator.h"
@@ -8753,6 +8754,7 @@ int db_bench_tool(int argc, char** argv, ToolHooks& hooks) {
     SetVersionString(GetRocksVersionAsString(true));
     initialized = true;
   }
+  RegisterZondaFS();
   ParseCommandLineFlags(&argc, &argv, true);
   FLAGS_compaction_style_e =
       (ROCKSDB_NAMESPACE::CompactionStyle)FLAGS_compaction_style;

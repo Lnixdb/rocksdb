@@ -401,13 +401,54 @@ IOStatus ZondaFileSystem::NewLogger(const std::string& fname, const IOOptions& i
   return base_fs_->NewLogger(fname, io_opts, result, dbg);
 }
 
+// uri example:
+// "zonda://?cluster_id=test_cluster&master_addr=list://127.0.0.1:38100,127.0.0.1:38101,127.0.0.1:38102");
+void ParseURI(const std::string& uri, ZondaFileSystemOptions& options) {
+  // find '?'
+  auto pos = uri.find('?');
+  if (pos == std::string::npos) return;
+
+  std::string query = uri.substr(pos + 1);
+  std::unordered_map<std::string, std::string> params;
+
+  // split '&'
+  std::stringstream ss(query);
+  std::string kv;
+  while (std::getline(ss, kv, '&')) {
+    auto eq_pos = kv.find('=');
+    if (eq_pos == std::string::npos) continue;
+    std::string key = kv.substr(0, eq_pos);
+    std::string value = kv.substr(eq_pos + 1);
+    params[key] = value;
+  }
+  options.client_id = params["client_id"];
+  options.cluster_id = params["cluster_id"];
+  options.log_path = params["log_path"];
+  options.master_addr = params["master_addr"];
+}
+
 static FactoryFunc<FileSystem> zonda_filesystem_reg =
     ObjectLibrary::Default()->AddFactory<FileSystem>(
         ObjectLibrary::PatternEntry("zonda").AddSeparator("://", false),
-        [](const std::string& /* uri */, std::unique_ptr<FileSystem>* f,
-           std::string* /* errmsg */) {
-          f->reset(new ZondaFileSystem(FileSystem::Default()));
+        [](const std::string& uri, std::unique_ptr<FileSystem>* f,
+           std::string* errmsg) {
+          ZondaFileSystemOptions option;
+          ParseURI(uri, option);
+          ZondaFileSystem* zfs;
+          auto status = rocksdb::ZondaFileSystem::NewZondaFileSystem(FileSystem::Default(), option, &zfs);
+          if (!status.ok()) {
+            *errmsg = status.ToString();
+            std::exit(-1);
+          }
+          f->reset(zfs);
           return f->get();
         });
+
+/* In static libraries, if a symbol is not referenced,
+ * C++ may skip global static variable initialization.
+ * Calling InitZondaFS ensures the initialization runs. */
+void RegisterZondaFS() {
+  (void)zonda_filesystem_reg;
+}
 
 }

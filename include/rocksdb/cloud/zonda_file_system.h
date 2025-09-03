@@ -220,5 +220,9 @@ private:
 };
 
 
+// uri example:
+// "zonda://?cluster_id=test_cluster&master_addr=list://127.0.0.1:38100,127.0.0.1:38101,127.0.0.1:38102");
+void ParseURI(const std::string& uri, ZondaFileSystemOptions& options);
+void RegisterZondaFS();
 
 }

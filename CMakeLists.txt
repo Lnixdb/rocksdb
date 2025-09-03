@@ -1691,9 +1691,26 @@ if(WITH_BENCHMARK_TOOLS)
     tools/simulated_hybrid_file_system.cc
     tools/db_bench.cc
     tools/tool_hooks.cc
-    tools/db_bench_tool.cc)
+    tools/db_bench_tool.cc
+  )
   target_link_libraries(db_bench${ARTIFACT_SUFFIX}
-    ${ROCKSDB_LIB} ${THIRDPARTY_LIBS})
+    ${ROCKSDB_LIB}
+    ${THIRDPARTY_LIBS}
+    # the zonda file system deps
+    ${ZONDA_FS_CLIENT_LIB_DIR}/libfile_client.a
+    ${ZONDA_FS_ISAL_LIB_DIR}/libisal.a
+    ${ZONDA_FS_GFLAG_LIB_DIR}/libgflags.a
+    ${ZONDA_FS_BRPC_LIB_DIR}/libbrpc.a
+    dl
+    rt
+    libssl.a
+    libcrypto.a
+    libprotobuf.a
+    libleveldb.a
+    libsnappy.a
+    pthread
+    libz.a
+  )
 
   add_executable(cache_bench${ARTIFACT_SUFFIX}
     cache/cache_bench.cc
