@@ -395,11 +395,11 @@ void ZondaFileSystem::SupportedOps(int64_t& supported_ops)  {
   supported_ops = 0;
 }
 
-// IOStatus ZondaFileSystem::NewLogger(const std::string& fname, const IOOptions& io_opts,
-//                              std::shared_ptr<Logger>* result,
-//                              IODebugContext* dbg) {
-//   return base_fs_->NewLogger(fname, io_opts, result, dbg);
-// }
+IOStatus ZondaFileSystem::NewLogger(const std::string& fname, const IOOptions& io_opts,
+                             std::shared_ptr<Logger>* result,
+                             IODebugContext* dbg) {
+  return base_fs_->NewLogger(fname, io_opts, result, dbg);
+}
 
 static FactoryFunc<FileSystem> zonda_filesystem_reg =
     ObjectLibrary::Default()->AddFactory<FileSystem>(
