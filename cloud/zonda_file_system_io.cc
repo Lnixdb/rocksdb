@@ -96,7 +96,7 @@ IOStatus ZondaFSRandomAccessFile::Read(uint64_t offset, size_t n,
   ssize_t r = -1;
   size_t left = n;
   char* ptr = scratch;
-  comm::ErrorCode code;
+  comm::ErrorCode code = comm::ZONDA;
   while (left > 0) {
     auto p = file_client::Read(&ctx, handler_, left, offset, ptr);
     code= p.first;
