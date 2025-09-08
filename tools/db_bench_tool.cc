@@ -2416,7 +2416,7 @@ class Stats {
               ZondaFSMetrics::Instance().Histograms(h.second, "avg", histogram.average);
               ZondaFSMetrics::Instance().Histograms(h.second, "p50", histogram.median);
               ZondaFSMetrics::Instance().Histograms(h.second, "p95", histogram.percentile95);
-              ZondaFSMetrics::Instance().Histograms(h.second, "p99", histogram.percentile95);
+              ZondaFSMetrics::Instance().Histograms(h.second, "p99", histogram.percentile99);
             }
             dbstats->Reset();
           }

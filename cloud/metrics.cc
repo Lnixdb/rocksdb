@@ -4,6 +4,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 ZondaFSMetrics::ZondaFSMetrics() {
+  return;
   registry_ = std::make_shared<prometheus::Registry>();
   exposer_.RegisterCollectable(registry_);
 
