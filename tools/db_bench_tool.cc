@@ -1773,6 +1773,7 @@ DEFINE_string(secondary_cache_uri, "",
               "Full URI for creating a custom secondary cache object");
 
 DEFINE_bool(zonda_metrics, true, "Zonda fs metrics switch");
+DEFINE_int32(zonda_metrics_port, 7800, "Zonda fs metrics pory");
 
 static class std::shared_ptr<ROCKSDB_NAMESPACE::SecondaryCache> secondary_cache;
 
@@ -2416,7 +2417,7 @@ class Stats {
               ZondaFSMetrics::Instance().Histograms(h.second, "avg", histogram.average);
               ZondaFSMetrics::Instance().Histograms(h.second, "p50", histogram.median);
               ZondaFSMetrics::Instance().Histograms(h.second, "p95", histogram.percentile95);
-              ZondaFSMetrics::Instance().Histograms(h.second, "p99", histogram.percentile95);
+              ZondaFSMetrics::Instance().Histograms(h.second, "p99", histogram.percentile99);
             }
             dbstats->Reset();
           }
@@ -8755,6 +8756,9 @@ int db_bench_tool(int argc, char** argv, ToolHooks& hooks) {
     initialized = true;
   }
   RegisterZondaFS();
+  if (FLAGS_zonda_metrics) {
+    ZondaFSMetrics::Init(FLAGS_zonda_metrics_port);
+  }
   ParseCommandLineFlags(&argc, &argv, true);
   FLAGS_compaction_style_e =
       (ROCKSDB_NAMESPACE::CompactionStyle)FLAGS_compaction_style;

@@ -77,8 +77,10 @@ inline std::unordered_map<Event, std::string> eventNameMap = {
 class ZondaFSMetrics {
 public:
    static ZondaFSMetrics& Instance();
-
-   // 获取 prometheus registry（用于注册到 Exposer）
+   ZondaFSMetrics() = default;
+   static void Init(int port) {
+     Instance().InitImpl(port);
+   }
    std::shared_ptr<prometheus::Registry> GetRegistry();
 
    void Histograms(const std::string& name, const std::string& quantile, double value);
@@ -86,9 +88,9 @@ public:
    void Listener(Event event, double value);
 
 private:
-   ZondaFSMetrics();
+   void InitImpl(int port);
    std::shared_ptr<prometheus::Registry> registry_;
-   prometheus::Exposer exposer_{"0.0.0.0:7800"};
+   std::unique_ptr<prometheus::Exposer> exposer_;
    std::unordered_map<std::string, prometheus::Gauge*> gauge_;
    std::unordered_map<std::string, prometheus::Counter*> ticker_;
    std::unordered_map<std::string, prometheus::Counter*> counter_;

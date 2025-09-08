@@ -3,9 +3,11 @@
 
 namespace ROCKSDB_NAMESPACE {
 
-ZondaFSMetrics::ZondaFSMetrics() {
+void ZondaFSMetrics::InitImpl(int port) {
+  std::string addr = "0.0.0.0:" + std::to_string(port);
+  exposer_ = std::make_unique<prometheus::Exposer>(addr);
   registry_ = std::make_shared<prometheus::Registry>();
-  exposer_.RegisterCollectable(registry_);
+  exposer_->RegisterCollectable(registry_);
 
   // ticker eg: rocksdb_block_cache_miss
   for (const auto& t : TickersNameMap) {

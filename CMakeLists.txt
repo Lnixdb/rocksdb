@@ -1600,6 +1600,8 @@ if(WITH_TESTS)
         utilities/write_batch_with_index/write_batch_with_index_test.cc
         cloud/example/zonda_filesystem_simple_test.cc
         cloud/example/zonda_filesystem_example_test.cc
+        cloud/example/zonda_filesystem_recover_test.cc
+
 	${PLUGIN_TESTS}
     )
   endif()
