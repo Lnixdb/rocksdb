@@ -1772,7 +1772,7 @@ DEFINE_string(cache_uri, "", "Full URI for creating a custom cache object");
 DEFINE_string(secondary_cache_uri, "",
               "Full URI for creating a custom secondary cache object");
 
-DEFINE_bool(zonda_metrics, true, "Zonda fs metrics switch");
+DEFINE_bool(zonda_metrics, false, "Zonda fs metrics switch");
 DEFINE_int32(zonda_metrics_port, 7800, "Zonda fs metrics pory");
 
 static class std::shared_ptr<ROCKSDB_NAMESPACE::SecondaryCache> secondary_cache;
