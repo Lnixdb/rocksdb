@@ -89,8 +89,8 @@ public:
 
 private:
    void InitImpl(int port);
-   //std::shared_ptr<prometheus::Registry> registry_;
-   //std::unique_ptr<prometheus::Exposer> exposer_;
+   std::shared_ptr<prometheus::Registry> registry_;
+   std::unique_ptr<prometheus::Exposer> exposer_;
    std::unordered_map<std::string, prometheus::Gauge*> gauge_;
    std::unordered_map<std::string, prometheus::Counter*> ticker_;
    std::unordered_map<std::string, prometheus::Counter*> counter_;
