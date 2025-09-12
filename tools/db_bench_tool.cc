@@ -8756,10 +8756,11 @@ int db_bench_tool(int argc, char** argv, ToolHooks& hooks) {
     initialized = true;
   }
   RegisterZondaFS();
+  ParseCommandLineFlags(&argc, &argv, true);
   if (FLAGS_zonda_metrics) {
     ZondaFSMetrics::Init(FLAGS_zonda_metrics_port);
   }
-  ParseCommandLineFlags(&argc, &argv, true);
+
   FLAGS_compaction_style_e =
       (ROCKSDB_NAMESPACE::CompactionStyle)FLAGS_compaction_style;
   if (FLAGS_statistics && !FLAGS_statistics_string.empty()) {
