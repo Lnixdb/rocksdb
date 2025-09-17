@@ -1163,6 +1163,8 @@ DEFINE_bool(use_stderr_info_logger, false,
 
 DEFINE_string(trace_file, "", "Trace workload to a file. ");
 
+DEFINE_bool(trace_using_posix, false, "Trace workload to posix. ");
+
 DEFINE_double(trace_replay_fast_forward, 1.0,
               "Fast forward trace replay, must > 0.0.");
 DEFINE_int32(block_cache_trace_sampling_frequency, 1,
@@ -3871,14 +3873,20 @@ class Benchmark {
         // replay.
         if (FLAGS_trace_file != "" && name != "replay") {
           std::unique_ptr<TraceWriter> trace_writer;
-          Status s = NewFileTraceWriter(FLAGS_env, EnvOptions(),
+          Status s;
+          if (FLAGS_trace_using_posix) {
+            s = NewFileTraceWriter(Env::Default(), EnvOptions(),
                                         FLAGS_trace_file, &trace_writer);
+          } else {
+            s = NewFileTraceWriter(FLAGS_env, EnvOptions(),
+                                        FLAGS_trace_file, &trace_writer);
+          }
           if (!s.ok()) {
             fprintf(stderr, "Encountered an error starting a trace, %s\n",
                     s.ToString().c_str());
             ErrorExit();
           }
-          s = db_.db->StartTrace(trace_options_, std::move(trace_writer));
+          s = db_.db->StartIOTrace(trace_options_, std::move(trace_writer));
           if (!s.ok()) {
             fprintf(stderr, "Encountered an error starting a trace, %s\n",
                     s.ToString().c_str());
@@ -3967,7 +3975,7 @@ class Benchmark {
     }
 
     if (name != "replay" && FLAGS_trace_file != "") {
-      Status s = db_.db->EndTrace();
+      Status s = db_.db->EndIOTrace();
       if (!s.ok()) {
         fprintf(stderr, "Encountered an error ending the trace, %s\n",
                 s.ToString().c_str());
