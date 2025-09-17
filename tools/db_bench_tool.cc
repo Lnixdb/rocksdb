@@ -3886,7 +3886,7 @@ class Benchmark {
                     s.ToString().c_str());
             ErrorExit();
           }
-          s = db_.db->StartIOTrace(trace_options_, std::move(trace_writer));
+          s = db_.db->StartTrace(trace_options_, std::move(trace_writer));
           if (!s.ok()) {
             fprintf(stderr, "Encountered an error starting a trace, %s\n",
                     s.ToString().c_str());
@@ -3975,7 +3975,7 @@ class Benchmark {
     }
 
     if (name != "replay" && FLAGS_trace_file != "") {
-      Status s = db_.db->EndIOTrace();
+      Status s = db_.db->EndTrace();
       if (!s.ok()) {
         fprintf(stderr, "Encountered an error ending the trace, %s\n",
                 s.ToString().c_str());
