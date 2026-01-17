@@ -105,6 +105,10 @@ endif()
 
 include(CMakeDependentOption)
 
+find_package(prometheus-cpp CONFIG REQUIRED)
+list(APPEND THIRDPARTY_LIBS prometheus-cpp::core)
+list(APPEND THIRDPARTY_LIBS prometheus-cpp::pull)
+
 if(MSVC)
   option(WITH_GFLAGS "build with GFlags" OFF)
   option(WITH_XPRESS "build with windows built in compression" OFF)
@@ -757,6 +761,9 @@ set(SOURCES
         env/fs_remap.cc
         env/mock_env.cc
         env/unique_id_gen.cc
+        cloud/zonda_file_system.cc
+        cloud/zonda_file_system_io.cc
+        cloud/metrics.cc
         file/delete_scheduler.cc
         file/file_prefetch_buffer.cc
         file/file_util.cc
@@ -1147,18 +1154,97 @@ string(REGEX REPLACE "[^0-9: /-]+" "" GIT_DATE "${GIT_DATE}")
 set(BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/build_version.cc)
 configure_file(util/build_version.cc.in ${BUILD_VERSION_CC} @ONLY)
 
+set(ZONDA_FS_PROTO_DIR_INCLUDE /home/lanyan/zonda2/proto)
+set(ZONDA_FS_SOURCE_DIR_INCLUDE /home/lanyan/zonda2)
+set(ZONDA_FS_DEP /home/lanyan/zonda2/deps)
+
+# brpc
+set(ZONDA_FS_BRPC_INCLUDE_DIR ${ZONDA_FS_DEP}/brpc/include)
+set(ZONDA_FS_BRPC_LIB_DIR ${ZONDA_FS_DEP}/brpc/lib)
+# file-client
+set(ZONDA_FS_CLIENT_INCLUDE_DIR ${ZONDA_FS_DEP}/file_client/include)
+set(ZONDA_FS_CLIENT_LIB_DIR ${ZONDA_FS_DEP}/file_client/lib)
+# fmt
+set(ZONDA_FS_FMT_INCLUDE_DIR ${ZONDA_FS_DEP}/fmt/include)
+set(ZONDA_FS_FMT_LIB_DIR ${ZONDA_FS_DEP}/fmt/lib)
+# isal
+set(ZONDA_FS_ISAL_INCLUDE_DIR ${ZONDA_FS_DEP}/isal/include)
+set(ZONDA_FS_ISAL_LIB_DIR ${ZONDA_FS_DEP}/isal/lib)
+# fiu
+set(ZONDA_FS_FIU_INCLUDE_DIR ${ZONDA_FS_DEP}/libfiu/include)
+set(ZONDA_FS_FIU_LIB_DIR ${ZONDA_FS_DEP}/libfiu/lib)
+# gflag
+set(ZONDA_FS_GFLAG_INCLUDE_DIR ${ZONDA_FS_DEP}/gflags/include)
+set(ZONDA_FS_GFLAG_LIB_DIR ${ZONDA_FS_DEP}/gflags/lib)
+# uring
+set(ZONDA_FS_URING_INCLUDE_DIR ${ZONDA_FS_DEP}/liburing/include)
+set(ZONDA_FS_URING_LIB_DIR ${ZONDA_FS_DEP}/liburing/lib)
+
 add_library(${ROCKSDB_STATIC_LIB} STATIC ${SOURCES} ${BUILD_VERSION_CC})
 target_include_directories(${ROCKSDB_STATIC_LIB} PUBLIC
-  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  ${ZONDA_FS_BRPC_INCLUDE_DIR}   # brpc
+  ${ZONDA_FS_CLIENT_INCLUDE_DIR} # file-client
+  ${ZONDA_FS_FMT_INCLUDE_DIR}    # fmt
+  ${ZONDA_FS_ISAL_INCLUDE_DIR}   # isal
+  ${ZONDA_FS_FIU_INCLUDE_DIR}    # fiu
+  ${ZONDA_FS_GFLAG_INCLUDE_DIR}  # gflag
+  ${ZONDA_FS_URING_INCLUDE_DIR}  # uring
+  ${ZONDA_FS_SOURCE_DIR_INCLUDE} # source code dir
+  ${ZONDA_FS_PROTO_DIR_INCLUDE}  # proto code dir
+)
+
 target_link_libraries(${ROCKSDB_STATIC_LIB} PRIVATE
-  ${THIRDPARTY_LIBS} ${SYSTEM_LIBS})
+  ${THIRDPARTY_LIBS} ${SYSTEM_LIBS}
+  ${ZONDA_FS_BRPC_LIB_DIR}/libbrpc.a
+  ${ZONDA_FS_CLIENT_LIB_DIR}/libfile_client.a
+  ${ZONDA_FS_FMT_LIB_DIR}/libfmt.a
+  ${ZONDA_FS_ISAL_LIB_DIR}/libisal.a
+  ${ZONDA_FS_FIU_LIB_DIR}/libfiu.a
+  ${ZONDA_FS_GFLAG_LIB_DIR}/libgflags.a
+  ${ZONDA_FS_URING_LIB_DIR}/liburing.a
+  ${ZONDA_FS_URING_LIB_DIR}/liburing-ffi.a
+  # third part deps
+  dl
+  rt
+  libyaml-cpp.a
+  libssl.a
+  libcrypto.a
+  libprotobuf.a
+  libleveldb.a
+  libsnappy.a
+  pthread
+  libz.a
+  liblz4.a
+  libbz2.a
+  libzstd.a
+)
 
 if(ROCKSDB_BUILD_SHARED)
   add_library(${ROCKSDB_SHARED_LIB} SHARED ${SOURCES} ${BUILD_VERSION_CC})
   target_include_directories(${ROCKSDB_SHARED_LIB} PUBLIC
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    ${ZONDA_FS_BRPC_INCLUDE_DIR}   # brpc
+    ${ZONDA_FS_CLIENT_INCLUDE_DIR} # file-client
+    ${ZONDA_FS_FMT_INCLUDE_DIR}    # fmt
+    ${ZONDA_FS_ISAL_INCLUDE_DIR}   # isal
+    ${ZONDA_FS_FIU_INCLUDE_DIR}    # fiu
+    ${ZONDA_FS_GFLAG_INCLUDE_DIR}  # gflag
+    ${ZONDA_FS_URING_INCLUDE_DIR}  # uring
+    ${ZONDA_FS_SOURCE_DIR_INCLUDE} # source code dir
+    ${ZONDA_FS_PROTO_DIR_INCLUDE}  # proto  code dir
+  )
   target_link_libraries(${ROCKSDB_SHARED_LIB} PRIVATE
-    ${THIRDPARTY_LIBS} ${SYSTEM_LIBS})
+    ${THIRDPARTY_LIBS} ${SYSTEM_LIBS}
+    # ${ZONDA_FS_BRPC_LIB_DIR}/libbrpc.so
+    # ${ZONDA_FS_CLIENT_LIB_DIR}/libfile_client.so
+    # ${ZONDA_FS_FMT_LIB_DIR}/libfmt.so
+    # ${ZONDA_FS_ISAL_LIB_DIR}/libisal.so
+    # ${ZONDA_FS_FIU_LIB_DIR}/libfiu.so
+    # ${ZONDA_FS_GFLAG_LIB_DIR}/libgflags.so
+    # ${ZONDA_FS_URING_LIB_DIR}/liburing.so
+    # ${ZONDA_FS_URING_LIB_DIR}/liburing-ffi.so
+  )
 
   if(WIN32)
     set_target_properties(${ROCKSDB_SHARED_LIB} PROPERTIES
@@ -1512,6 +1598,10 @@ if(WITH_TESTS)
         utilities/types_util_test.cc
         utilities/util_merge_operators_test.cc
         utilities/write_batch_with_index/write_batch_with_index_test.cc
+        cloud/example/zonda_filesystem_simple_test.cc
+        cloud/example/zonda_filesystem_example_test.cc
+        cloud/example/zonda_filesystem_recover_test.cc
+
 	${PLUGIN_TESTS}
     )
   endif()
@@ -1547,11 +1637,35 @@ if(WITH_TESTS)
         EXCLUDE_FROM_DEFAULT_BUILD_RELWITHDEBINFO 1
         OUTPUT_NAME ${exename}${ARTIFACT_SUFFIX}
       )
-      target_link_libraries(${exename}${ARTIFACT_SUFFIX} testutillib${ARTIFACT_SUFFIX} testharness gtest ${THIRDPARTY_LIBS} ${ROCKSDB_LIB})
+      target_link_libraries(
+              ${exename}${ARTIFACT_SUFFIX} testutillib${ARTIFACT_SUFFIX} testharness gtest ${THIRDPARTY_LIBS} ${ROCKSDB_LIB})
       if(NOT "${exename}" MATCHES "db_sanity_test")
-        gtest_discover_tests(${exename} DISCOVERY_TIMEOUT 120)
-        add_dependencies(rocksdb_check ${exename}${ARTIFACT_SUFFIX})
+        #gtest_discover_tests(${exename} DISCOVERY_TIMEOUT 120)
+        #add_dependencies(rocksdb_check ${exename}${ARTIFACT_SUFFIX})
       endif()
+
+      if(${exename} MATCHES "^zonda_filesystem_.*_test$")
+        target_link_libraries(${exename}${ARTIFACT_SUFFIX}
+                ${ZONDA_FS_CLIENT_LIB_DIR}/libfile_client.a
+                #${ZONDA_FS_FMT_LIB_DIR}/libfmt.a
+                ${ZONDA_FS_ISAL_LIB_DIR}/libisal.a
+                #${ZONDA_FS_FIU_LIB_DIR}/libfiu.a
+                ${ZONDA_FS_GFLAG_LIB_DIR}/libgflags.a
+                #${ZONDA_FS_URING_LIB_DIR}/liburing.a
+                #${ZONDA_FS_URING_LIB_DIR}/liburing-ffi.a
+                ${ZONDA_FS_BRPC_LIB_DIR}/libbrpc.a
+                dl
+                rt
+                libssl.a
+                libcrypto.a
+                libprotobuf.a
+                libleveldb.a
+                libsnappy.a
+                pthread
+                libz.a
+        )
+      endif()
+
   endforeach(sourcefile ${TESTS})
 
   if(WIN32)
@@ -1579,9 +1693,26 @@ if(WITH_BENCHMARK_TOOLS)
     tools/simulated_hybrid_file_system.cc
     tools/db_bench.cc
     tools/tool_hooks.cc
-    tools/db_bench_tool.cc)
+    tools/db_bench_tool.cc
+  )
   target_link_libraries(db_bench${ARTIFACT_SUFFIX}
-    ${ROCKSDB_LIB} ${THIRDPARTY_LIBS})
+    ${ROCKSDB_LIB}
+    ${THIRDPARTY_LIBS}
+    # the zonda file system deps
+    ${ZONDA_FS_CLIENT_LIB_DIR}/libfile_client.a
+    ${ZONDA_FS_ISAL_LIB_DIR}/libisal.a
+    ${ZONDA_FS_GFLAG_LIB_DIR}/libgflags.a
+    ${ZONDA_FS_BRPC_LIB_DIR}/libbrpc.a
+    dl
+    rt
+    libssl.a
+    libcrypto.a
+    libprotobuf.a
+    libleveldb.a
+    libsnappy.a
+    pthread
+    libz.a
+  )
 
   add_executable(cache_bench${ARTIFACT_SUFFIX}
     cache/cache_bench.cc

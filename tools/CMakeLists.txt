@@ -1,6 +1,7 @@
 set(CORE_TOOLS
   sst_dump.cc
-  ldb.cc)
+  ldb.cc
+  io_tracer_parser.cc)
 foreach(src ${CORE_TOOLS})
   get_filename_component(exename ${src} NAME_WE)
   add_executable(${exename}${ARTIFACT_SUFFIX}

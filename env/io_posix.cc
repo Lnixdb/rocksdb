@@ -40,6 +40,7 @@
 #include "util/autovector.h"
 #include "util/coding.h"
 #include "util/string_util.h"
+#include "cloud/metrics.h"
 
 #if defined(OS_LINUX) && !defined(F_SET_RW_HINT)
 #define F_LINUX_SPECIFIC_BASE 1024
@@ -300,6 +301,7 @@ IOStatus PosixSequentialFile::Skip(uint64_t n) {
 }
 
 IOStatus PosixSequentialFile::InvalidateCache(size_t offset, size_t length) {
+
 #ifndef OS_LINUX
   (void)offset;
   (void)length;
@@ -908,7 +910,6 @@ IOStatus PosixRandomAccessFile::ReadAsync(
     assert(IsSectorAligned(req.len, GetRequiredBufferAlignment()));
     assert(IsSectorAligned(req.scratch, GetRequiredBufferAlignment()));
   }
-
 #if defined(ROCKSDB_IOURING_PRESENT)
   // io_uring_queue_init.
   struct io_uring* iu = nullptr;
@@ -1199,6 +1200,7 @@ IOStatus PosixMmapFile::Append(const Slice& data, const IOOptions& /*opts*/,
 
 IOStatus PosixMmapFile::Close(const IOOptions& /*opts*/,
                               IODebugContext* /*dbg*/) {
+
   IOStatus s;
   size_t unused = limit_ - dst_;
 
@@ -1395,7 +1397,6 @@ IOStatus PosixWritableFile::Truncate(uint64_t size, const IOOptions& /*opts*/,
 IOStatus PosixWritableFile::Close(const IOOptions& /*opts*/,
                                   IODebugContext* /*dbg*/) {
   IOStatus s;
-
   size_t block_size;
   size_t last_allocated_block;
   GetPreallocationStatus(&block_size, &last_allocated_block);
@@ -1549,6 +1550,7 @@ IOStatus PosixWritableFile::Allocate(uint64_t offset, uint64_t len,
 IOStatus PosixWritableFile::RangeSync(uint64_t offset, uint64_t nbytes,
                                       const IOOptions& opts,
                                       IODebugContext* dbg) {
+
 #ifdef ROCKSDB_RANGESYNC_PRESENT
   assert(offset <= static_cast<uint64_t>(std::numeric_limits<off_t>::max()));
   assert(nbytes <= static_cast<uint64_t>(std::numeric_limits<off_t>::max()));

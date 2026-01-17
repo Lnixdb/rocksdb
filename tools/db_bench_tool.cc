@@ -93,6 +93,10 @@
 #include "utilities/merge_operators/bytesxor.h"
 #include "utilities/merge_operators/sortlist.h"
 #include "utilities/persistent_cache/block_cache_tier.h"
+#include "cloud/metrics.h"
+#include "monitoring/statistics_impl.h"
+#include "rocksdb/cloud/zonda_file_system.h"
+
 #ifdef MEMKIND
 #include "memory/memkind_kmem_allocator.h"
 #endif
@@ -1159,6 +1163,8 @@ DEFINE_bool(use_stderr_info_logger, false,
 
 DEFINE_string(trace_file, "", "Trace workload to a file. ");
 
+DEFINE_bool(trace_using_posix, false, "Trace workload to posix. ");
+
 DEFINE_double(trace_replay_fast_forward, 1.0,
               "Fast forward trace replay, must > 0.0.");
 DEFINE_int32(block_cache_trace_sampling_frequency, 1,
@@ -1767,6 +1773,10 @@ DEFINE_bool(read_with_latest_user_timestamp, true,
 DEFINE_string(cache_uri, "", "Full URI for creating a custom cache object");
 DEFINE_string(secondary_cache_uri, "",
               "Full URI for creating a custom secondary cache object");
+
+DEFINE_bool(zonda_metrics, false, "Zonda fs metrics switch");
+DEFINE_int32(zonda_metrics_port, 7800, "Zonda fs metrics pory");
+
 static class std::shared_ptr<ROCKSDB_NAMESPACE::SecondaryCache> secondary_cache;
 
 static const bool FLAGS_prefix_size_dummy __attribute__((__unused__)) =
@@ -2395,6 +2405,24 @@ class Stats {
                   (now - last_report_finish_) / 1000000.0,
                   (now - start_) / 1000000.0);
 
+          // ticker monitor
+          if (FLAGS_zonda_metrics) {
+            std::map<std::string, uint64_t> stats_map;
+            dbstats->getTickerMap(&stats_map);
+            for (const auto& p : stats_map) {
+              ZondaFSMetrics::Instance().Ticker(p.first, p.second);
+            }
+            // latency monitor
+            for (const auto& h : HistogramsNameMap) {
+              HistogramData histogram;
+              dbstats->histogramData(h.first, &histogram);
+              ZondaFSMetrics::Instance().Histograms(h.second, "avg", histogram.average);
+              ZondaFSMetrics::Instance().Histograms(h.second, "p50", histogram.median);
+              ZondaFSMetrics::Instance().Histograms(h.second, "p95", histogram.percentile95);
+              ZondaFSMetrics::Instance().Histograms(h.second, "p99", histogram.percentile99);
+            }
+            dbstats->Reset();
+          }
           if (id_ == 0 && FLAGS_stats_per_interval) {
             std::string stats;
 
@@ -3845,8 +3873,14 @@ class Benchmark {
         // replay.
         if (FLAGS_trace_file != "" && name != "replay") {
           std::unique_ptr<TraceWriter> trace_writer;
-          Status s = NewFileTraceWriter(FLAGS_env, EnvOptions(),
+          Status s;
+          if (FLAGS_trace_using_posix) {
+            s = NewFileTraceWriter(Env::Default(), EnvOptions(),
                                         FLAGS_trace_file, &trace_writer);
+          } else {
+            s = NewFileTraceWriter(FLAGS_env, EnvOptions(),
+                                        FLAGS_trace_file, &trace_writer);
+          }
           if (!s.ok()) {
             fprintf(stderr, "Encountered an error starting a trace, %s\n",
                     s.ToString().c_str());
@@ -4901,6 +4935,9 @@ class Benchmark {
     }
 
     options.listeners.emplace_back(listener_);
+
+    auto zonda_listener = std::make_shared<ZondaFSEventListener>();
+    options.listeners.emplace_back(zonda_listener);
 
     if (options.file_checksum_gen_factory == nullptr) {
       if (FLAGS_file_checksum) {
@@ -8726,7 +8763,12 @@ int db_bench_tool(int argc, char** argv, ToolHooks& hooks) {
     SetVersionString(GetRocksVersionAsString(true));
     initialized = true;
   }
+  RegisterZondaFS();
   ParseCommandLineFlags(&argc, &argv, true);
+  if (FLAGS_zonda_metrics) {
+    ZondaFSMetrics::Init(FLAGS_zonda_metrics_port);
+  }
+
   FLAGS_compaction_style_e =
       (ROCKSDB_NAMESPACE::CompactionStyle)FLAGS_compaction_style;
   if (FLAGS_statistics && !FLAGS_statistics_string.empty()) {
